@@ -1,12 +1,14 @@
 """
-Hallucination detection engine.
-Three modes: Free (rule-based), OpenAI (GPT-4o), Gemini (1.5 Pro).
+Hallucination detection engine  v6.0
+- Free mode  : Groq API (Llama 3.1 8B — free, 14k req/day) with heuristic fallback
+- OpenAI     : GPT-4o
+- Gemini     : Gemini 1.5 Pro
+Taxonomy uses simple 1 / 2 / 3 / 4 numbering.
 """
 
-import json, re
+import json, re, os, urllib.request
 from src.models import DetectionInput, HallucinationResult, HallucinationType
 
-# ── Shared system prompt for AI backends ──────────────────────────────────────
 SYSTEM_PROMPT = """You are an expert hallucination detection engine for LLM outputs.
 
 Given a PARAGRAPH (context), a QUESTION, and a MODEL'S ANSWER, your job is to:
@@ -14,28 +16,29 @@ Given a PARAGRAPH (context), a QUESTION, and a MODEL'S ANSWER, your job is to:
   2. If yes, classify into EXACTLY ONE type.
 
 TAXONOMY:
-TYPE 1A — Out-of-Context Entity: answer introduces an entity NOT in the paragraph and not inferable.
-TYPE 1B — Tuple Verification: real entities exist but their pairing/relationship is wrong.
-TYPE 2A — Out-of-Context Intent: correct entities, but verb/action/relationship is distorted or inverted.
-TYPE 3A — Triple Verification: entire subject-predicate-object triple is wrong at every level.
+TYPE 1 — Out-of-Context Entity: answer introduces an entity NOT in the paragraph and not inferable.
+TYPE 2 — Tuple Verification: real entities exist but their pairing/relationship is wrong.
+TYPE 3 — Out-of-Context Intent: correct entities, but verb/action/relationship is distorted or inverted.
+TYPE 4 — Triple Verification: entire subject-predicate-object triple is wrong at every level.
 
 RULES:
-1. If paragraph provided → ground against it. No paragraph → use world knowledge.
-2. EXACTLY ONE type. Priority: 1A → 1B → 2A → 3A.
+1. If paragraph provided -> ground strictly against it. No paragraph -> use world knowledge.
+2. Pick EXACTLY ONE type. Priority: 1 -> 2 -> 3 -> 4.
 3. Correct extra facts = NOT hallucinated. Wrong/contradicting facts = hallucinated.
-4. Contradictory answer → classify on the wrong claim only.
+4. Be decisive. High confidence when evidence is clear.
 
-OUTPUT: Valid JSON only. No markdown.
+OUTPUT: Valid JSON only. No markdown. No extra text.
 {
   "is_hallucinated": true|false,
   "confidence": <0-100>,
-  "hallucination_types": ["1A"],
+  "hallucination_types": ["1"],
   "hallucinated_elements": ["specific wrong element"],
   "explanation": "Precise explanation of what is wrong and why.",
-  "correct_answer": "What the answer should have said"
+  "correct_answer": "What the answer should have said (empty string if not hallucinated)"
 }
-HARD CONSTRAINT: hallucination_types must have AT MOST ONE value.
+HARD CONSTRAINT: hallucination_types must contain AT MOST ONE value from: "1", "2", "3", "4".
 """
+
 
 def _parse_raw(raw: dict) -> HallucinationResult:
     type_map = {t.value: t for t in HallucinationType}
@@ -52,104 +55,153 @@ def _parse_raw(raw: dict) -> HallucinationResult:
         raw_response          = raw,
     )
 
+
 def _build_user_message(inp: DetectionInput) -> str:
     para = inp.paragraph.strip() or "(No paragraph — use world knowledge)"
-    return f"PARAGRAPH:\n{para}\n\nQUESTION:\n{inp.question.strip()}\n\nMODEL'S ANSWER:\n{inp.answer.strip()}\n\nAnalyze and return JSON."
+    return (
+        f"PARAGRAPH:\n{para}\n\n"
+        f"QUESTION:\n{inp.question.strip()}\n\n"
+        f"MODEL'S ANSWER:\n{inp.answer.strip()}\n\n"
+        f"Analyze and return JSON."
+    )
+
 
 def _clean_json(text: str) -> dict:
-    text = re.sub(r"^```json\s*", "", text.strip())
-    text = re.sub(r"\s*```$", "", text)
+    text = text.strip()
+    text = re.sub(r"^```json\s*", "", text)
+    text = re.sub(r"^```\s*",     "", text)
+    text = re.sub(r"\s*```$",     "", text)
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        text = match.group(0)
     return json.loads(text)
 
 
-# ── Free (rule-based) detector ────────────────────────────────────────────────
+# ── FREE MODE — Groq (Llama 3.1 8B Instant, free tier) ───────────────────────
 class FreeDetector:
     """
-    Lightweight heuristic detector. No API key required.
-    Uses token overlap and simple NLP rules. Less accurate than AI backends.
+    Primary  : Groq API with Llama 3.1 8B Instant
+               Free tier: 14,400 requests/day | 500,000 tokens/day
+               Get your free key at: https://console.groq.com
+               Set env var: GROQ_API_KEY=gsk_...
+    Fallback : Heuristic rules (when key not set or Groq unreachable)
     """
-    def detect(self, inp: DetectionInput) -> HallucinationResult:
-        import difflib, string
+    GROQ_URL   = "https://api.groq.com/openai/v1/chat/completions"
+    GROQ_MODEL = "llama-3.1-8b-instant"
+
+    def _groq_detect(self, inp: DetectionInput) -> HallucinationResult:
+        api_key = os.environ.get("GROQ_API_KEY", "").strip()
+        if not api_key:
+            raise ValueError("GROQ_API_KEY environment variable not set")
+
+        payload = json.dumps({
+            "model": self.GROQ_MODEL,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": _build_user_message(inp)},
+            ],
+            "temperature": 0.1,
+            "max_tokens":  512,
+            "response_format": {"type": "json_object"},
+        }).encode()
+
+        req = urllib.request.Request(
+            self.GROQ_URL, data=payload,
+            headers={
+                "Content-Type":  "application/json",
+                "Authorization": f"Bearer {api_key}",
+                "User-Agent":    "TruthyDetector/6.0",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=20) as r:
+            resp = json.loads(r.read())
+        return _parse_raw(_clean_json(resp["choices"][0]["message"]["content"]))
+
+    def _heuristic_fallback(self, inp: DetectionInput) -> HallucinationResult:
+        """Rule-based fallback when GROQ_API_KEY is missing or call fails."""
+        import string
 
         def tokens(t):
             t = t.lower().translate(str.maketrans('', '', string.punctuation))
             return set(t.split())
 
-        para_tokens   = tokens(inp.paragraph)
-        answer_tokens = tokens(inp.answer)
-        question_tokens = tokens(inp.question)
+        STOPWORDS = {
+            "the","a","an","is","was","are","were","be","been","being","have","has",
+            "had","do","does","did","will","would","shall","should","may","might",
+            "must","can","could","to","of","in","for","on","with","at","by","from",
+            "up","about","into","through","during","it","its","this","that","these",
+            "those","and","but","or","nor","not","so","yet","both","either","neither",
+            "because","as","if","then","than","when","where","who","which","what",
+            "he","she","they","we","you","i","me","him","her","us","them","also",
+        }
 
-        is_hallucinated = False
-        confidence      = 50
-        h_type          = None
+        para_tok = tokens(inp.paragraph) - STOPWORDS
+        ans_tok  = tokens(inp.answer)    - STOPWORDS
+        q_tok    = tokens(inp.question)  - STOPWORDS
+
+        is_hallucinated       = False
+        confidence            = 50
+        h_type                = None
         hallucinated_elements = []
-        explanation     = ""
-        correct_answer  = ""
+        explanation           = ""
+        correct_answer        = ""
 
         if inp.paragraph.strip():
-            # Compute overlap between answer and paragraph
-            overlap = len(answer_tokens & para_tokens) / max(len(answer_tokens), 1)
+            overlap    = len(ans_tok & para_tok) / max(len(ans_tok), 1)
+            caps_ans   = {w for w in inp.answer.split()    if w[0].isupper() and len(w) > 2}
+            caps_para  = {w for w in inp.paragraph.split() if w[0].isupper() and len(w) > 2}
+            caps_q     = {w for w in inp.question.split()  if w[0].isupper() and len(w) > 2}
+            novel_caps = caps_ans - caps_para - caps_q
 
-            # New tokens in answer not in paragraph (potential new entities)
-            # Filter stopwords roughly
-            stopwords = {"the","a","an","is","was","are","were","be","been","being",
-                         "have","has","had","do","does","did","will","would","shall",
-                         "should","may","might","must","can","could","to","of","in",
-                         "for","on","with","at","by","from","up","about","into","through",
-                         "during","it","its","this","that","these","those","and","but",
-                         "or","nor","not","so","yet","both","either","neither","because",
-                         "as","if","then","than","when","where","who","which","what",
-                         "he","she","they","we","you","i","me","him","her","us","them"}
-
-            new_answer_tokens = (answer_tokens - para_tokens - question_tokens) - stopwords
-
-            if overlap < 0.25 and len(new_answer_tokens) > 2:
-                is_hallucinated = True
-                h_type          = "1A"
-                confidence      = 65
-                hallucinated_elements = list(new_answer_tokens)[:3]
-                explanation     = (
-                    f"The answer contains terms not found in the paragraph "
-                    f"({', '.join(list(new_answer_tokens)[:3])}), suggesting out-of-context entity introduction. "
-                    f"Token overlap with paragraph is only {overlap:.0%}."
+            if novel_caps and overlap < 0.35:
+                is_hallucinated       = True
+                h_type                = "1"
+                confidence            = 72
+                hallucinated_elements = list(novel_caps)[:4]
+                explanation           = (
+                    f"Answer introduces named entities not found in context: "
+                    f"{', '.join(list(novel_caps)[:3])}. "
+                    f"Token overlap with paragraph: {overlap:.0%}."
                 )
-                correct_answer  = "Answer should be grounded in the provided paragraph."
-            elif overlap >= 0.25:
-                # Check for intent inversion signals
+                correct_answer = "Answer should be grounded in the provided paragraph."
+            else:
                 inversion_pairs = [
                     ({"promotes","supports","endorses","advocates","favors"},
-                     {"critiques","opposes","criticizes","condemns","depicts"}),
-                    ({"invented","created"},{"discovered","found"}),
-                    ({"won","victory","champion"},{"lost","defeated","runner"}),
+                     {"critiques","opposes","criticizes","condemns","depicts","warns"}),
+                    ({"won","victory","champion","defeated","beat"},
+                     {"lost","surrendered","conceded"}),
+                    ({"invented","created","founded","built"},
+                     {"discovered","found","explored"}),
                 ]
-                para_l  = inp.paragraph.lower()
-                ans_l   = inp.answer.lower()
-                for pos_words, neg_words in inversion_pairs:
-                    ans_has_pos  = any(w in ans_l  for w in pos_words)
-                    para_has_neg = any(w in para_l for w in neg_words)
-                    ans_has_neg  = any(w in ans_l  for w in neg_words)
-                    para_has_pos = any(w in para_l for w in pos_words)
-                    if (ans_has_pos and para_has_neg) or (ans_has_neg and para_has_pos):
+                para_l, ans_l = inp.paragraph.lower(), inp.answer.lower()
+                for pos_w, neg_w in inversion_pairs:
+                    if (any(w in ans_l  for w in pos_w) and any(w in para_l for w in neg_w)) or \
+                       (any(w in ans_l  for w in neg_w) and any(w in para_l for w in pos_w)):
                         is_hallucinated = True
-                        h_type          = "2A"
-                        confidence      = 72
-                        explanation     = "Detected possible intent inversion: the answer uses a verb/relationship that contradicts the paragraph's framing."
-                        correct_answer  = "The answer's relationship should align with the paragraph."
+                        h_type          = "3"
+                        confidence      = 70
+                        explanation     = (
+                            "Answer intent contradicts the paragraph framing — "
+                            "predicate inversion detected."
+                        )
+                        correct_answer = "Answer relationship should align with paragraph intent."
                         break
-                if not is_hallucinated:
-                    confidence = 82
 
+                if not is_hallucinated:
+                    confidence  = 80
+                    explanation = "No clear hallucination signals detected by rule-based analysis."
         else:
-            # No paragraph — limited heuristics
-            confidence = 45
-            explanation = "No paragraph provided. Free mode uses limited heuristics without a reference paragraph. Use AI mode for world-knowledge grounding."
+            confidence  = 40
+            explanation = (
+                "GROQ_API_KEY not configured — using heuristic fallback. "
+                "Set GROQ_API_KEY in your environment for Llama 3.1 8B powered detection."
+            )
 
         if not is_hallucinated:
             return HallucinationResult(
                 is_hallucinated=False, confidence=confidence,
                 hallucination_types=[], hallucinated_elements=[],
-                explanation=explanation or "No clear hallucination signals detected by rule-based analysis.",
-                correct_answer="",
+                explanation=explanation, correct_answer="",
             )
 
         type_map = {t.value: t for t in HallucinationType}
@@ -162,8 +214,14 @@ class FreeDetector:
             correct_answer        = correct_answer,
         )
 
+    def detect(self, inp: DetectionInput) -> HallucinationResult:
+        try:
+            return self._groq_detect(inp)
+        except Exception:
+            return self._heuristic_fallback(inp)
 
-# ── OpenAI backend ────────────────────────────────────────────────────────────
+
+# ── OpenAI backend — GPT-4o ───────────────────────────────────────────────────
 class OpenAIDetector:
     def __init__(self, api_key: str):
         from openai import OpenAI
@@ -181,7 +239,7 @@ class OpenAIDetector:
         return _parse_raw(_clean_json(r.choices[0].message.content))
 
 
-# ── Gemini backend ────────────────────────────────────────────────────────────
+# ── Gemini backend — Gemini 1.5 Pro ──────────────────────────────────────────
 class GeminiDetector:
     def __init__(self, api_key: str):
         import google.generativeai as genai
@@ -192,7 +250,11 @@ class GeminiDetector:
         model = genai.GenerativeModel(
             model_name="gemini-1.5-pro",
             system_instruction=SYSTEM_PROMPT,
-            generation_config={"response_mime_type": "application/json", "max_output_tokens": 1024},
+            generation_config={
+                "response_mime_type": "application/json",
+                "max_output_tokens": 1024,
+                "temperature": 0.1,
+            },
         )
         return _parse_raw(_clean_json(model.generate_content(_build_user_message(inp)).text))
 

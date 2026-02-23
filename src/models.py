@@ -1,6 +1,6 @@
 """
 Data models for the Hallucination Detection Framework.
-Definitions aligned with the project specification document.
+Taxonomy updated to simple 1/2/3/4 numbering.
 """
 
 from dataclasses import dataclass, field
@@ -10,62 +10,39 @@ from enum import Enum
 
 class HallucinationType(str, Enum):
     """
-    Hallucination taxonomy — definitions from the specification document.
+    Hallucination taxonomy — simple 1/2/3/4 numbering.
 
-    1A  – Out-of-Context Entity Hallucination
-          The answer introduces an entity that does NOT appear in the paragraph
-          and cannot be logically inferred from it. The entity may be real-world
-          valid, but it is not grounded in the provided context.
-          Example: paragraph has Nolan as director → answer says Spielberg.
-                   "Spielberg" is not in the paragraph = 1A.
-
-    1B  – Tuple Verification Hallucination
-          Entities individually exist and may even be real, but their
-          RELATIONSHIP or PAIRING is incorrect. The issue is wrong linking,
-          not fabricated entities.
-          Example: Apple's founders listed wrong — Bill Gates & Paul Allen
-                   (Microsoft founders) incorrectly paired with Apple = 1B.
-          Example (no paragraph): Brazil incorrectly paired with
-                   "2018 World Cup winner" attribute (France won) = 1B.
-
-    2A  – Out-of-Context Intent Hallucination
-          The entities are correct, but the ACTION, VERB, or RELATIONSHIP
-          associated with them is wrong or inverted. Predicate distortion.
-          Example: 1984 "promotes surveillance" when paragraph says it
-                   critiques/depicts surveillance as oppressive = 2A.
-
-    3A  – Triple Verification Hallucination
-          The FULL semantic triple (subject + predicate + object) is wrong.
-          No part of the triple aligns with the paragraph. Most severe type.
-          Example: monument built by Person A for Reason X → answer says
-                   Person B built it for Reason Y. Entire triple wrong = 3A.
+    1  – Out-of-Context Entity Hallucination
+    2  – Tuple Verification Hallucination
+    3  – Out-of-Context Intent Hallucination
+    4  – Triple Verification Hallucination
     """
-    ENTITY_OUT_OF_CONTEXT = "1A"
-    ENTITY_TUPLE          = "1B"
-    INTENT_OUT_OF_CONTEXT = "2A"
-    SEMANTIC_TRIPLE       = "3A"
+    ENTITY_OUT_OF_CONTEXT = "1"
+    ENTITY_TUPLE          = "2"
+    INTENT_OUT_OF_CONTEXT = "3"
+    SEMANTIC_TRIPLE       = "4"
 
     @property
     def display_name(self) -> str:
         return {
-            "1A": "Entity – Out-of-Context Entity Hallucination",
-            "1B": "Entity – Tuple Verification Hallucination",
-            "2A": "Intent – Out-of-Context Intent Hallucination",
-            "3A": "Semantic – Triple Verification Hallucination",
+            "1": "Out-of-Context Entity Hallucination",
+            "2": "Tuple Verification Hallucination",
+            "3": "Out-of-Context Intent Hallucination",
+            "4": "Triple Verification Hallucination",
         }[self.value]
 
     @property
     def description(self) -> str:
         return {
-            "1A": "Answer introduces an entity not present in / inferable from the paragraph",
-            "1B": "Real entities exist but are incorrectly paired or linked together",
-            "2A": "Entities are correct but the verb / action / relationship is wrong or inverted",
-            "3A": "The full subject–predicate–object triple is wrong at every structural level",
+            "1": "Answer introduces an entity not present in / inferable from the paragraph",
+            "2": "Real entities exist but are incorrectly paired or linked together",
+            "3": "Entities are correct but the verb / action / relationship is wrong or inverted",
+            "4": "The full subject–predicate–object triple is wrong at every structural level",
         }[self.value]
 
     @property
     def icon(self) -> str:
-        return {"1A": "⚡", "1B": "🔗", "2A": "🎯", "3A": "🔺"}[self.value]
+        return {"1": "⚡", "2": "🔗", "3": "🎯", "4": "🔺"}[self.value]
 
 
 @dataclass
@@ -73,7 +50,7 @@ class DetectionInput:
     """Input to the hallucination detector."""
     question:  str
     answer:    str
-    paragraph: str = ""   # Optional — leave blank to use world knowledge
+    paragraph: str = ""
 
     def summary(self) -> str:
         lines = []
@@ -81,7 +58,7 @@ class DetectionInput:
             short = self.paragraph[:120] + ("…" if len(self.paragraph) > 120 else "")
             lines.append(f"  Paragraph : {short}")
         else:
-            lines.append("  Paragraph : (none – world knowledge used as ground truth)")
+            lines.append("  Paragraph : (none – world knowledge used)")
         lines.append(f"  Question  : {self.question}")
         lines.append(f"  Answer    : {self.answer}")
         return "\n".join(lines)
@@ -90,13 +67,13 @@ class DetectionInput:
 @dataclass
 class HallucinationResult:
     """Full result returned by the detector."""
-    is_hallucinated:      bool
-    confidence:           int                    # 0–100
-    hallucination_types:  List[HallucinationType] = field(default_factory=list)
-    hallucinated_elements: List[str]             = field(default_factory=list)
-    explanation:          str  = ""
-    correct_answer:       str  = ""
-    raw_response:         Optional[dict] = field(default=None, repr=False)
+    is_hallucinated:       bool
+    confidence:            int
+    hallucination_types:   List[HallucinationType] = field(default_factory=list)
+    hallucinated_elements: List[str]               = field(default_factory=list)
+    explanation:           str  = ""
+    correct_answer:        str  = ""
+    raw_response:          Optional[dict] = field(default=None, repr=False)
 
     @property
     def verdict(self) -> str:

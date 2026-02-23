@@ -2,12 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<link rel="icon" type="image/x-icon" href="/static/favicon.ico"/>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png"/>
-<link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png"/>
-<link rel="apple-touch-icon" href="/static/apple-touch-icon.png"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<title>TruthyAI - Your Personal Fact Verifier</title>
+<title>Truthy — AI Hallucination Detector</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -436,7 +432,7 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
   <div class="nav-sep"></div>
   <nav class="nav-pills">
     <a class="nav-pill" href="/docs" target="_blank">API Docs</a>
-    <a class="nav-pill" href="https://github.com/UtsavOpal/truthy" onclick="return false">GitHub</a>
+    <a class="nav-pill" href="#" onclick="return false">GitHub</a>
   </nav>
   <div class="tbar-right">
     <div class="live-chip"><span class="live-dot"></span>Live</div>
@@ -449,8 +445,8 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-tag"><span class="hero-tag-dot"></span>Because facts matter.</div>
-  <h1 class="hero-h1"> Scared of Hallucinations?<br><em>We’re not.</em></h1>
+  <div class="hero-tag"><span class="hero-tag-dot"></span>AI Hallucination Detection Engine</div>
+  <h1 class="hero-h1">Catch what AI<br>gets <em>wrong.</em></h1>
   <p class="hero-p">Structured hallucination analysis across 4 taxonomy types. Free instantly, or upgrade accuracy with your own API key.</p>
   <div class="hero-stats">
     <div class="hero-stat">
@@ -461,10 +457,13 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
       <span class="hero-stat-val">3</span>
       <span class="hero-stat-lbl">Providers</span>
     </div>
-    
     <div class="hero-stat">
-      <span class="hero-stat-val">Free</span>
-      <span class="hero-stat-lbl">No Key Needed</span>
+      <span class="hero-stat-val">100%</span>
+      <span class="hero-stat-lbl">Confidence Score</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">Groq</span>
+      <span class="hero-stat-lbl">Free Engine</span>
     </div>
   </div>
 </section>
@@ -509,24 +508,24 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
         <div class="prov-tabs">
           <button class="prov-tab active" id="mode-free" onclick="setMode('free')">
             <span class="prov-tab-name">Free</span>
-            <span class="prov-tab-sub">No key required</span>
+            <span class="prov-tab-sub">Groq · Llama 3.1</span>
             <span class="prov-tab-bar"></span>
           </button>
           <button class="prov-tab" id="mode-openai" onclick="setMode('openai')">
             <span class="prov-tab-name">GPT-4o</span>
-            <span class="prov-tab-sub">Highest accuracy</span>
+            <span class="prov-tab-sub">OpenAI</span>
             <span class="prov-tab-bar"></span>
           </button>
           <button class="prov-tab" id="mode-gemini" onclick="setMode('gemini')">
             <span class="prov-tab-name">Gemini</span>
-            <span class="prov-tab-sub">Fast &amp; precise</span>
+            <span class="prov-tab-sub">Google</span>
             <span class="prov-tab-bar"></span>
           </button>
         </div>
 
         <div class="notice open" id="free-notice">
           <div class="notice-inner">
-            Free mode uses heuristics — good for quick checks. For best results, switch to GPT-4o or Gemini.
+            Free mode uses <strong>Groq · Llama 3.1 8B</strong> — a powerful open-source LLM running on Groq's free cloud infrastructure. No API key needed from you. For maximum accuracy on complex cases, switch to GPT-4o or Gemini.
           </div>
         </div>
 
@@ -792,10 +791,10 @@ const TAX_DATA=[
 ];
 
 const TYPE_META={
-  "1A":{code:"1A",name:"Out-of-Context Entity",def:"Answer introduces an entity not present in or inferable from context."},
-  "1B":{code:"1B",name:"Tuple Verification",def:"Real entities exist but are incorrectly paired or linked."},
-  "2A":{code:"2A",name:"Out-of-Context Intent",def:"Entities are correct but the relationship between them is distorted."},
-  "3A":{code:"3A",name:"Triple Verification",def:"Full subject–predicate–object triple is wrong at every structural level."},
+  "1":{code:"1",name:"Out-of-Context Entity",def:"Answer introduces an entity not present in or inferable from context."},
+  "2":{code:"2",name:"Tuple Verification",def:"Real entities exist but are incorrectly paired or linked."},
+  "3":{code:"3",name:"Out-of-Context Intent",def:"Entities are correct but the relationship between them is distorted."},
+  "4":{code:"4",name:"Triple Verification",def:"Full subject–predicate–object triple is wrong at every structural level."},
 };
 
 let currentMode="free",lastResult=null,lastInputs=null,activeTab="curl";
@@ -964,7 +963,7 @@ function renderResult(d){
   if(d.correct_answer){cs.style.display="block";document.getElementById("correctText").textContent=d.correct_answer;}
   else{cs.style.display="none";}
 
-  const pm={free:"Free · Built-in",openai:"OpenAI · GPT-4o",gemini:"Google · Gemini 1.5"}[d.provider]||d.provider;
+  const pm={free:"Groq · Llama 3.1 8B",openai:"OpenAI · GPT-4o",gemini:"Google · Gemini 1.5"}[d.provider]||d.provider;
   document.getElementById("provChip").innerHTML='<span class="prov-foot-dot"></span>'+pm;
   document.getElementById("vfTime").textContent=new Date().toLocaleTimeString();
   buildCode("curl");document.getElementById("codeCard").style.display="block";
