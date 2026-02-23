@@ -3,53 +3,32 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<title>Truthy — AI Hallucination Detector</title>
+<title>TruthyAI - Your personal fact verifier</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
-:root {
-  --r:6px; --r-md:10px; --r-lg:14px; --r-xl:18px;
-  --ease:cubic-bezier(.4,0,.2,1); --t:.18s var(--ease);
-  --topbar-h:54px;
-  --ok:#16a34a; --ok-d:rgba(22,163,74,.10); --ok-b:rgba(22,163,74,.22);
-  --err:#dc2626; --err-d:rgba(220,38,38,.10); --err-b:rgba(220,38,38,.22);
+:root{
+  --r:6px;--r-md:10px;--r-lg:14px;--r-xl:18px;
+  --ease:cubic-bezier(.4,0,.2,1);--t:.18s var(--ease);--topbar-h:54px;
+  --ok:#16a34a;--ok-d:rgba(22,163,74,.10);--ok-b:rgba(22,163,74,.22);
+  --err:#dc2626;--err-d:rgba(220,38,38,.10);--err-b:rgba(220,38,38,.22);
 }
-/* ── DARK ───────────────────────────────────────────── */
-[data-theme="dark"] {
-  --bg:#000;
-  --sur:#0d0d0d;
-  --s2:#141414;
-  --s3:#1c1c1c;
-  --s4:#252525;
-  --bd:rgba(255,255,255,.09);
-  --bd2:rgba(255,255,255,.16);
-  --tx:#f5f5f5;
-  --tx2:#a3a3a3;
-  --tx3:#636363;
-  --glass:rgba(0,0,0,.88);
-  --sh:0 0 0 1px rgba(255,255,255,.07),0 8px 40px rgba(0,0,0,.7);
+[data-theme="dark"]{
+  --bg:#000;--sur:#0d0d0d;--s2:#141414;--s3:#1c1c1c;--s4:#252525;
+  --bd:rgba(255,255,255,.09);--bd2:rgba(255,255,255,.16);
+  --tx:#f5f5f5;--tx2:#a3a3a3;--tx3:#636363;
+  --glass:rgba(0,0,0,.88);--sh:0 0 0 1px rgba(255,255,255,.07),0 8px 40px rgba(0,0,0,.7);
 }
-/* ── LIGHT ──────────────────────────────────────────── */
-[data-theme="light"] {
-  --bg:#f2f2f2;
-  --sur:#ffffff;
-  --s2:#f8f8f8;
-  --s3:#eeeeee;
-  --s4:#e0e0e0;
-  --bd:rgba(0,0,0,.10);
-  --bd2:rgba(0,0,0,.18);
-  --tx:#111111;
-  --tx2:#4a4a4a;
-  --tx3:#888888;
-  --glass:rgba(242,242,242,.92);
-  --sh:0 0 0 1px rgba(0,0,0,.08),0 4px 20px rgba(0,0,0,.07);
-  --ok:#15803d; --ok-d:rgba(21,128,61,.09); --ok-b:rgba(21,128,61,.22);
-  --err:#b91c1c; --err-d:rgba(185,28,28,.09); --err-b:rgba(185,28,28,.22);
+[data-theme="light"]{
+  --bg:#f2f2f2;--sur:#fff;--s2:#f8f8f8;--s3:#eee;--s4:#e0e0e0;
+  --bd:rgba(0,0,0,.10);--bd2:rgba(0,0,0,.18);
+  --tx:#111;--tx2:#4a4a4a;--tx3:#888;
+  --glass:rgba(242,242,242,.92);--sh:0 0 0 1px rgba(0,0,0,.08),0 4px 20px rgba(0,0,0,.07);
+  --ok:#15803d;--ok-d:rgba(21,128,61,.09);--ok-b:rgba(21,128,61,.22);
+  --err:#b91c1c;--err-d:rgba(185,28,28,.09);--err-b:rgba(185,28,28,.22);
 }
-
-/* ── RESET ──────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{height:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+html{height:100%;-webkit-font-smoothing:antialiased}
 body{min-height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;transition:background var(--t),color var(--t);overflow-x:hidden}
 button{font-family:inherit;cursor:pointer}
 img,svg{display:block}
@@ -57,13 +36,8 @@ img,svg{display:block}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--s4);border-radius:99px}
 
-/* ── TOPBAR ─────────────────────────────────────────── */
-.topbar{
-  position:sticky;top:0;z-index:300;height:var(--topbar-h);
-  display:flex;align-items:center;padding:0 28px;gap:16px;
-  background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  border-bottom:1px solid var(--bd);
-}
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:300;height:var(--topbar-h);display:flex;align-items:center;padding:0 28px;gap:14px;background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--bd)}
 .logo{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0}
 .logo-icon{width:28px;height:28px;border-radius:7px;background:var(--tx);color:var(--bg);display:grid;place-items:center;flex-shrink:0}
 .logo-name{font-size:15px;font-weight:800;color:var(--tx);letter-spacing:-.5px}
@@ -72,74 +46,64 @@ img,svg{display:block}
 .nav-pills{display:flex;gap:2px}
 .nav-pill{font-size:11px;font-weight:500;color:var(--tx3);padding:4px 10px;border-radius:var(--r);background:transparent;border:none;transition:all var(--t);text-decoration:none}
 .nav-pill:hover{color:var(--tx);background:var(--s3)}
-.tbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
-.live-chip{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--ok);padding:3px 9px;border-radius:99px;background:var(--ok-d);border:1px solid var(--ok-b)}
+.tbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.live-chip{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--ok);padding:3px 9px;border-radius:99px;background:var(--ok-d);border:1px solid var(--ok-b);margin-right:2px}
 .live-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);animation:bpulse 2s ease-in-out infinite}
 @keyframes bpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
-.icon-btn{width:32px;height:32px;border-radius:var(--r);background:transparent;border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;transition:all var(--t);flex-shrink:0}
+.icon-btn{width:32px;height:32px;border-radius:var(--r);background:transparent;border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;transition:all var(--t);flex-shrink:0;position:relative}
 .icon-btn:hover{background:var(--s3);border-color:var(--bd2);color:var(--tx)}
-.docs-btn{font-size:11.5px;font-weight:600;color:var(--tx2);background:transparent;border:1px solid var(--bd);padding:5px 12px;border-radius:var(--r);text-decoration:none;transition:all var(--t);display:flex;align-items:center;gap:5px;white-space:nowrap}
-.docs-btn:hover{color:var(--tx);background:var(--s2);border-color:var(--bd2)}
 
-/* ── HERO ───────────────────────────────────────────── */
-.hero{
-  padding:56px 28px 48px;text-align:center;
-  background:var(--sur);border-bottom:1px solid var(--bd);
-  position:relative;overflow:hidden;
+/* ── LANGUAGE DROPDOWN ── */
+.lang-btn{width:32px;height:32px;border-radius:var(--r);background:transparent;border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;transition:all var(--t);flex-shrink:0;position:relative;cursor:pointer}
+.lang-btn:hover{background:var(--s3);border-color:var(--bd2);color:var(--tx)}
+.lang-dropdown{
+  position:absolute;top:calc(100% + 8px);right:0;
+  background:var(--sur);border:1px solid var(--bd2);border-radius:var(--r-lg);
+  min-width:180px;overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  display:none;z-index:400;
+  animation:ddIn .15s var(--ease);
 }
-.hero::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse 55% 80% at 50% 0%,rgba(22,163,74,.06),transparent 70%);
-}
+.lang-dropdown.open{display:block}
+@keyframes ddIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.lang-dd-hd{padding:8px 12px 6px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);border-bottom:1px solid var(--bd)}
+.lang-option{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;transition:background var(--t);border:none;background:transparent;width:100%;text-align:left;font-family:inherit}
+.lang-option:hover{background:var(--s2)}
+.lang-option.active{background:var(--s3)}
+.lang-flag{font-size:16px;line-height:1;flex-shrink:0}
+.lang-info{display:flex;flex-direction:column;gap:1px}
+.lang-name{font-size:12px;font-weight:600;color:var(--tx)}
+.lang-native{font-size:10px;color:var(--tx3)}
+.lang-check{margin-left:auto;color:var(--ok);opacity:0}
+.lang-option.active .lang-check{opacity:1}
+
+/* ── HERO ── */
+.hero{padding:56px 28px 48px;text-align:center;background:var(--sur);border-bottom:1px solid var(--bd);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 55% 80% at 50% 0%,rgba(22,163,74,.06),transparent 70%)}
 [data-theme="light"] .hero::before{background:radial-gradient(ellipse 55% 80% at 50% 0%,rgba(22,163,74,.08),transparent 70%)}
-.hero-tag{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
-  color:var(--tx3);margin-bottom:20px;
-  padding:5px 12px;border-radius:99px;border:1px solid var(--bd);background:var(--s2);
-}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--tx3);margin-bottom:20px;padding:5px 12px;border-radius:99px;border:1px solid var(--bd);background:var(--s2)}
 .hero-tag-dot{width:5px;height:5px;border-radius:50%;background:var(--ok)}
-.hero-h1{
-  font-size:clamp(36px,5vw,60px);font-weight:900;line-height:1.02;
-  letter-spacing:-2.5px;color:var(--tx);margin-bottom:16px;
-}
+.hero-h1{font-size:clamp(36px,5vw,60px);font-weight:900;line-height:1.02;letter-spacing:-2.5px;color:var(--tx);margin-bottom:16px}
 .hero-h1 em{font-style:italic;font-weight:300;letter-spacing:-1px}
-.hero-p{
-  font-size:15px;color:var(--tx2);line-height:1.7;
-  max-width:440px;margin:0 auto 28px;font-weight:400;
-}
-.hero-stats{
-  display:inline-flex;align-items:center;gap:0;
-  border:1px solid var(--bd);border-radius:var(--r-lg);overflow:hidden;
-  background:var(--s2);
-}
-.hero-stat{
-  padding:10px 22px;display:flex;flex-direction:column;align-items:center;gap:2px;
-  border-right:1px solid var(--bd);
-}
+.hero-p{font-size:15px;color:var(--tx2);line-height:1.7;max-width:440px;margin:0 auto 28px}
+.hero-stats{display:inline-flex;align-items:center;border:1px solid var(--bd);border-radius:var(--r-lg);overflow:hidden;background:var(--s2)}
+.hero-stat{padding:10px 22px;display:flex;flex-direction:column;align-items:center;gap:2px;border-right:1px solid var(--bd)}
 .hero-stat:last-child{border-right:none}
 .hero-stat-val{font-size:18px;font-weight:800;color:var(--tx);letter-spacing:-1px;line-height:1}
 .hero-stat-lbl{font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
 
-/* ── FEATURE STRIP ──────────────────────────────────── */
-.feature-strip{
-  background:var(--s2);border-bottom:1px solid var(--bd);
-  padding:12px 28px;display:flex;align-items:center;justify-content:center;
-  gap:28px;flex-wrap:wrap;
-}
+/* ── FEATURE STRIP ── */
+.feature-strip{background:var(--s2);border-bottom:1px solid var(--bd);padding:12px 28px;display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:wrap}
 .feat-item{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;color:var(--tx3)}
 .feat-item svg{color:var(--ok);flex-shrink:0}
 .feat-sep{width:1px;height:14px;background:var(--bd2);flex-shrink:0}
 
-/* ── LAYOUT ─────────────────────────────────────────── */
-.page{
-  max-width:1260px;margin:0 auto;
-  padding:24px 28px 80px;
-  display:grid;grid-template-columns:390px 1fr;
-  gap:18px;align-items:start;
-}
+/* ── LAYOUT ── */
+.page{max-width:1260px;margin:0 auto;padding:24px 28px 80px;display:grid;grid-template-columns:390px 1fr;gap:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:14px}
+.right-col{display:flex;flex-direction:column;gap:16px}
 
-/* ── PANEL ──────────────────────────────────────────── */
+/* ── PANEL ── */
 .panel{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
 .panel-hd{padding:13px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
 .panel-hd-left{display:flex;flex-direction:column;gap:1px}
@@ -147,17 +111,11 @@ img,svg{display:block}
 .panel-hd-title{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-.15px}
 .panel-body{padding:18px}
 .panel-body-tight{padding:12px 16px}
-.divider{height:1px;background:var(--bd);margin:0}
+.divider{height:1px;background:var(--bd)}
 
-/* ── PROVIDER TABS ──────────────────────────────────── */
+/* ── PROVIDER TABS ── */
 .prov-tabs{display:flex;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--bd)}
-.prov-tab{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  padding:12px 8px 10px;gap:2px;
-  background:transparent;border:none;border-right:1px solid var(--bd);
-  cursor:pointer;transition:background var(--t);font-family:inherit;
-  position:relative;
-}
+.prov-tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 8px 10px;gap:2px;background:transparent;border:none;border-right:1px solid var(--bd);cursor:pointer;transition:background var(--t);font-family:inherit;position:relative}
 .prov-tab:last-child{border-right:none}
 .prov-tab:hover{background:var(--s3)}
 .prov-tab.active{background:var(--s2)}
@@ -167,12 +125,12 @@ img,svg{display:block}
 .prov-tab-bar{position:absolute;bottom:0;left:20%;right:20%;height:2px;border-radius:99px;background:transparent;transition:background var(--t)}
 .prov-tab.active .prov-tab-bar{background:var(--tx)}
 
-/* ── NOTICE / KEY ───────────────────────────────────── */
+/* ── NOTICE / KEY ── */
 .notice{max-height:0;overflow:hidden;opacity:0;transition:max-height .35s var(--ease),opacity .25s}
-.notice.open{max-height:100px;opacity:1}
+.notice.open{max-height:120px;opacity:1}
 .notice-inner{margin-top:12px;padding:10px 13px;border-radius:var(--r);background:var(--s3);border:1px solid var(--bd2);font-size:11.5px;color:var(--tx2);line-height:1.6}
 .key-section{max-height:0;overflow:hidden;opacity:0;transition:max-height .35s var(--ease),opacity .25s}
-.key-section.open{max-height:120px;opacity:1}
+.key-section.open{max-height:130px;opacity:1}
 .key-lbl{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);margin-top:14px;margin-bottom:6px}
 .key-wrap{position:relative}
 .key-inp{width:100%;background:var(--s3);border:1px solid var(--bd);border-radius:var(--r);padding:9px 36px 9px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--tx);outline:none;transition:border-color var(--t)}
@@ -184,7 +142,7 @@ img,svg{display:block}
 .key-link{font-size:11px;color:var(--tx2);text-decoration:none;font-weight:500}
 .key-link:hover{color:var(--tx)}
 
-/* ── FORM ───────────────────────────────────────────── */
+/* ── FORM ── */
 .field{display:flex;flex-direction:column;gap:5px}
 .flabel{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);display:flex;align-items:center;justify-content:space-between}
 .lopt{font-size:9.5px;color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0}
@@ -193,53 +151,28 @@ textarea:focus{border-color:var(--bd2);background:var(--s2)}
 textarea::placeholder{color:var(--tx3)}
 .form-stack{display:flex;flex-direction:column;gap:14px}
 
-/* ── SAMPLES ────────────────────────────────────────── */
+/* ── SAMPLES ── */
 .samples-wrap{display:flex;gap:6px;flex-wrap:wrap}
-.sample-btn{
-  font-size:11px;font-weight:600;padding:5px 11px;border-radius:var(--r);
-  border:1px solid var(--bd);background:transparent;color:var(--tx2);
-  transition:all var(--t);white-space:nowrap;-webkit-tap-highlight-color:transparent;
-}
+.sample-btn{font-size:11px;font-weight:600;padding:5px 11px;border-radius:var(--r);border:1px solid var(--bd);background:transparent;color:var(--tx2);transition:all var(--t);white-space:nowrap}
 .sample-btn:hover{border-color:var(--bd2);color:var(--tx);background:var(--s3)}
 
-/* ── RUN BUTTON ─────────────────────────────────────── */
-.run-btn{
-  width:100%;padding:14px 20px;
-  background:var(--tx);border:none;border-radius:var(--r-md);
-  color:var(--bg);font-size:14px;font-weight:700;letter-spacing:-.3px;
-  transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:8px;
-  font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;
-}
+/* ── RUN BUTTON ── */
+.run-btn{width:100%;padding:14px 20px;background:var(--tx);border:none;border-radius:var(--r-md);color:var(--bg);font-size:14px;font-weight:700;letter-spacing:-.3px;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Inter',sans-serif}
 .run-btn:hover:not(:disabled){opacity:.85;transform:translateY(-1px)}
 .run-btn:active:not(:disabled){transform:none;opacity:.9}
 .run-btn:disabled{opacity:.2;cursor:not-allowed;transform:none}
 .kbd{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 5px;border:1px solid rgba(0,0,0,.18);border-radius:3px;opacity:.55}
 [data-theme="dark"] .kbd{border-color:rgba(255,255,255,.18)}
 
-/* ── ERROR BAR ──────────────────────────────────────── */
+/* ── ERROR BAR ── */
 .err-bar{display:none;border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--err);background:var(--err-d);border:1px solid var(--err-b);align-items:center;gap:8px}
 .err-bar.show{display:flex;animation:slideDown .18s ease}
 @keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 
-/* ── RIGHT COL ──────────────────────────────────────── */
-.right-col{display:flex;flex-direction:column;gap:16px}
-
-/* ── EMPTY STATE ────────────────────────────────────── */
-.empty-state{
-  background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);
-  padding:52px 32px;text-align:center;position:relative;overflow:hidden;
-  box-shadow:var(--sh);
-}
-.empty-grid{
-  position:absolute;inset:0;opacity:.04;
-  background-image:linear-gradient(var(--tx) 1px,transparent 1px),linear-gradient(90deg,var(--tx) 1px,transparent 1px);
-  background-size:32px 32px;pointer-events:none;
-}
-.empty-ico{
-  width:56px;height:56px;margin:0 auto 18px;
-  background:var(--s3);border:1px solid var(--bd2);border-radius:var(--r-lg);
-  display:grid;place-items:center;color:var(--tx3);position:relative;
-}
+/* ── EMPTY STATE ── */
+.empty-state{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);padding:52px 32px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--sh)}
+.empty-grid{position:absolute;inset:0;opacity:.04;background-image:linear-gradient(var(--tx) 1px,transparent 1px),linear-gradient(90deg,var(--tx) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
+.empty-ico{width:56px;height:56px;margin:0 auto 18px;background:var(--s3);border:1px solid var(--bd2);border-radius:var(--r-lg);display:grid;place-items:center;color:var(--tx3)}
 .empty-h{font-size:16px;font-weight:700;color:var(--tx);margin-bottom:8px;letter-spacing:-.3px}
 .empty-p{font-size:13px;color:var(--tx2);line-height:1.7;max-width:260px;margin:0 auto 20px}
 .empty-hints{display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto}
@@ -247,7 +180,7 @@ textarea::placeholder{color:var(--tx3)}
 .empty-hint-num{width:20px;height:20px;border-radius:50%;background:var(--s4);border:1px solid var(--bd2);display:grid;place-items:center;font-size:9px;font-weight:700;color:var(--tx3);flex-shrink:0;font-family:'JetBrains Mono',monospace}
 .empty-hint-text{font-size:11.5px;color:var(--tx2);line-height:1.4}
 
-/* ── RESULT CARD ────────────────────────────────────── */
+/* ── RESULT CARD ── */
 #result{display:none}
 .verdict-card{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
 .verdict-top{padding:22px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:18px;position:relative}
@@ -261,50 +194,56 @@ textarea::placeholder{color:var(--tx3)}
 .v-label{font-size:19px;font-weight:800;line-height:1.1;letter-spacing:-.6px}
 .v-label.hall{color:var(--err)}
 .v-label.clean{color:var(--ok)}
-.v-sub{font-size:12px;color:var(--tx2);margin-top:4px;line-height:1.45;font-weight:400}
-
-/* ── CONFIDENCE RING ────────────────────────────────── */
+.v-sub{font-size:12px;color:var(--tx2);margin-top:4px;line-height:1.45}
 .conf-ring{position:relative;width:74px;height:74px;flex-shrink:0}
 .conf-ring svg{width:74px;height:74px;transform:rotate(-90deg)}
 .conf-track{fill:none;stroke:var(--s4);stroke-width:5.5}
 .conf-fill{fill:none;stroke-width:5.5;stroke-linecap:round;transition:stroke-dashoffset .85s cubic-bezier(.4,0,.2,1),stroke .3s}
 .conf-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.conf-num{font-family:'Inter',sans-serif;font-size:17px;font-weight:800;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.conf-num{font-size:17px;font-weight:800;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums}
 .conf-num.hall{color:var(--err)}
 .conf-num.clean{color:var(--ok)}
 .conf-lbl{font-family:'JetBrains Mono',monospace;font-size:6px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);margin-top:2px}
 
-/* ── TYPE ROW ───────────────────────────────────────── */
+/* ── TYPE ROW ── */
 .type-row{padding:14px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;gap:12px}
 .type-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;flex-shrink:0;margin-top:2px;background:var(--s3);border:1px solid var(--bd2);color:var(--tx2)}
 .type-name{font-size:13px;font-weight:700;color:var(--tx);letter-spacing:-.15px}
 .type-def{font-size:11.5px;color:var(--tx2);margin-top:3px;line-height:1.55}
 
-/* ── DETAIL ─────────────────────────────────────────── */
+/* ── DETAIL ── */
 .detail{padding:14px 24px;border-bottom:1px solid var(--bd)}
 .detail:last-child{border-bottom:none}
 .detail-lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px;display:flex;align-items:center;gap:5px}
 .detail-body{font-size:13px;color:var(--tx2);line-height:1.75}
 .elem-chips{display:flex;flex-wrap:wrap;gap:5px}
 .elem-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:4px;background:var(--err-d);color:var(--err);border:1px solid var(--err-b);font-family:'JetBrains Mono',monospace}
-.correct-box{background:var(--ok-d);border:1px solid var(--ok-b);border-radius:var(--r);padding:10px 13px;font-size:13px;color:var(--ok);line-height:1.65;font-weight:500}
+.correct-box{background:var(--ok-d);border:1px solid var(--ok-b);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--ok);line-height:1.7;font-weight:500}
 .verdict-foot{padding:10px 24px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bd)}
 .prov-foot{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:500;color:var(--tx3)}
 .prov-foot-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);flex-shrink:0}
 .vf-time{margin-left:auto;font-size:10px;color:var(--tx3);font-family:'JetBrains Mono',monospace}
 
-/* ── WEB SEARCH BANNER ──────────────────────────────── */
-.ws-banner{padding:12px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;gap:10px}
-.ws-icon{flex-shrink:0;color:var(--tx3);margin-top:1px}
-.ws-body{flex:1;min-width:0}
-.ws-title{font-size:11px;font-weight:600;color:var(--tx2);display:flex;align-items:center;gap:6px;margin-bottom:3px}
-.ws-auto-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;padding:1px 5px;border-radius:3px;border:1px solid var(--bd2);color:var(--tx3);text-transform:uppercase}
-.ws-snippet{font-size:11.5px;color:var(--tx3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.ws-sources{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
-.ws-src{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 8px;border-radius:4px;background:var(--s3);border:1px solid var(--bd);color:var(--tx2);text-decoration:none;transition:all var(--t)}
-.ws-src:hover{border-color:var(--bd2);color:var(--tx)}
+/* ── WEB CONTEXT PANEL (structured) ── */
+.wc-panel{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
+.wc-hd{padding:12px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.wc-hd-left{display:flex;align-items:center;gap:8px}
+.wc-hd-icon{color:var(--tx3)}
+.wc-hd-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.wc-auto-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:3px;border:1px solid var(--bd2);color:var(--tx3);text-transform:uppercase}
+.wc-title{font-size:15px;font-weight:700;color:var(--tx);letter-spacing:-.3px;padding:14px 18px 0}
+.wc-summary{font-size:13px;color:var(--tx2);line-height:1.75;padding:10px 18px 14px;border-bottom:1px solid var(--bd)}
+.wc-facts{display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--bd)}
+.wc-fact{padding:9px 18px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+.wc-fact:nth-child(even){border-right:none}
+.wc-fact:nth-last-child(-n+2){border-bottom:none}
+.wc-fact-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:3px}
+.wc-fact-value{font-size:12px;font-weight:500;color:var(--tx);line-height:1.4}
+.wc-sources{padding:10px 18px;display:flex;flex-wrap:wrap;gap:5px}
+.wc-src{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:3px 9px;border-radius:4px;background:var(--s3);border:1px solid var(--bd);color:var(--tx2);text-decoration:none;transition:all var(--t);max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.wc-src:hover{border-color:var(--bd2);color:var(--tx)}
 
-/* ── CODE CARD ──────────────────────────────────────── */
+/* ── CODE CARD ── */
 .code-card{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
 .code-hd{padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:8px}
 .code-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
@@ -317,35 +256,24 @@ textarea::placeholder{color:var(--tx3)}
 pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);line-height:1.85;white-space:pre}
 .t-key{color:var(--tx)}.t-str{color:var(--tx2)}.t-num{color:var(--tx)}.t-bool-t{color:var(--ok)}.t-bool-f{color:var(--err)}.t-curl{color:var(--tx)}.t-flag{color:var(--tx3)}.t-url{color:var(--tx2)}
 
-/* ── TAXONOMY ───────────────────────────────────────── */
+/* ── TAXONOMY ── */
 .tax-panel{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
 .tax-hd{padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
 .tax-hd-left{display:flex;flex-direction:column;gap:1px}
 .tax-hd-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
 .tax-hd-title{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-.15px}
-.tax-row{
-  display:flex;align-items:center;gap:14px;padding:13px 18px;
-  border-bottom:1px solid var(--bd);cursor:pointer;
-  transition:background var(--t);user-select:none;-webkit-tap-highlight-color:transparent;
-  position:relative;
-}
+.tax-row{display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background var(--t);user-select:none;position:relative}
 .tax-row:last-child{border-bottom:none}
 .tax-row:hover{background:var(--s2)}
 .tax-row:hover .tax-arrow{opacity:1;transform:translateX(0)}
-.tax-num{
-  width:26px;height:26px;border-radius:50%;
-  display:grid;place-items:center;flex-shrink:0;
-  font-size:11px;font-weight:700;font-family:'Inter',sans-serif;
-  background:var(--s3);border:1px solid var(--bd2);color:var(--tx2);
-  transition:all var(--t);
-}
 .tax-row:hover .tax-num{background:var(--tx);color:var(--bg);border-color:transparent}
+.tax-num{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-size:11px;font-weight:700;background:var(--s3);border:1px solid var(--bd2);color:var(--tx2);transition:all var(--t)}
 .tax-text{flex:1}
 .tax-name{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-.1px}
 .tax-desc{font-size:11px;color:var(--tx3);margin-top:2px;line-height:1.4}
 .tax-arrow{display:flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--tx3);opacity:0;transform:translateX(-5px);transition:all var(--t);flex-shrink:0}
 
-/* ── MODAL ──────────────────────────────────────────── */
+/* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeOv .18s ease}
 .modal-overlay.closing{animation:fadeOvOut .18s ease forwards}
 @keyframes fadeOv{from{opacity:0}to{opacity:1}}
@@ -371,71 +299,110 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
 .modal-tags{display:flex;flex-wrap:wrap;gap:5px}
 .modal-tag{font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;border:1px solid var(--bd);background:var(--s3);color:var(--tx2)}
 
-/* ── SPINNER / UTILS ────────────────────────────────── */
+/* ── UTILS ── */
 .spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.12);border-top-color:var(--bg);animation:spin .6s linear infinite;flex-shrink:0}
 [data-theme="dark"] .spinner{border-color:rgba(255,255,255,.12);border-top-color:var(--bg)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .fade-in{animation:fadeIn .3s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.stack{display:flex;flex-direction:column;gap:14px}
 .searching-dots span{animation:blink 1.4s infinite both}
 .searching-dots span:nth-child(2){animation-delay:.2s}
 .searching-dots span:nth-child(3){animation-delay:.4s}
 @keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
 
-/* ── RESPONSIVE ─────────────────────────────────────── */
-@media(min-width:1280px){
-  .page{grid-template-columns:410px 1fr;padding:26px 40px 80px}
-  .topbar{padding:0 40px}
-  .hero{padding:64px 40px 52px}
-  .feature-strip{padding:12px 40px}
-}
+/* ── RESPONSIVE ── */
+@media(min-width:1280px){.page{grid-template-columns:410px 1fr;padding:26px 40px 80px}.topbar{padding:0 40px}.hero{padding:64px 40px 52px}.feature-strip{padding:12px 40px}}
 @media(max-width:1280px){.page{grid-template-columns:360px 1fr;gap:16px}}
-@media(max-width:1024px){
-  .page{grid-template-columns:1fr 1fr;padding:16px 20px 60px}
-  .hero{padding:44px 24px 38px}
-}
-@media(max-width:768px){
-  :root{--topbar-h:50px}
-  .topbar{padding:0 16px}
-  .nav-pills,.nav-sep{display:none}
-  .page{grid-template-columns:1fr;padding:14px 16px 56px}
-  .right-col{order:-1}
-  .hero{padding:36px 20px 30px}
-  .hero-stats{flex-wrap:wrap}
-  .feature-strip{gap:16px;padding:10px 16px}
-  .feat-sep{display:none}
-}
-@media(max-width:480px){
-  .topbar{padding:0 14px;gap:10px}
-  .hero{padding:28px 16px 24px}
-  .page{padding:12px 12px 44px}
-  .verdict-top{padding:16px 18px;gap:12px}
-  .detail{padding:12px 18px}
-  .type-row{padding:12px 18px}
-  .verdict-foot{padding:9px 18px}
-  .panel-body{padding:14px}
-}
+@media(max-width:1024px){.page{grid-template-columns:1fr 1fr;padding:16px 20px 60px}.hero{padding:44px 24px 38px}}
+@media(max-width:768px){:root{--topbar-h:50px}.topbar{padding:0 16px}.nav-pills,.nav-sep{display:none}.page{grid-template-columns:1fr;padding:14px 16px 56px}.right-col{order:-1}.hero{padding:36px 20px 30px}.hero-stats{flex-wrap:wrap}.feature-strip{gap:16px;padding:10px 16px}.feat-sep{display:none}}
+@media(max-width:480px){.topbar{padding:0 14px;gap:8px}.hero{padding:28px 16px 24px}.page{padding:12px 12px 44px}.verdict-top{padding:16px 18px;gap:12px}.detail{padding:12px 18px}.type-row{padding:12px 18px}.verdict-foot{padding:9px 18px}.panel-body{padding:14px}.wc-facts{grid-template-columns:1fr}.wc-fact{border-right:none}.wc-fact:nth-last-child(-n+2){border-bottom:1px solid var(--bd)}.wc-fact:last-child{border-bottom:none}}
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
 <header class="topbar">
   <a class="logo" href="/">
-    <div class="logo-icon">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-    </div>
-    <span class="logo-name">Truthy</span>
-    <span class="logo-ver">v4.1</span>
+    <div class="logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
+    <span class="logo-name">Truthy</span><span class="logo-ver">v7.0</span>
   </a>
   <div class="nav-sep"></div>
   <nav class="nav-pills">
-    <a class="nav-pill" href="/docs" target="_blank">API Docs</a>
-    <a class="nav-pill" href="#" onclick="return false">GitHub</a>
+    <a class="nav-pill" href="https://github.com/UtsavOpal/truthy">GitHub</a>
   </nav>
   <div class="tbar-right">
     <div class="live-chip"><span class="live-dot"></span>Live</div>
+
+    <!-- Language Button -->
+    <div style="position:relative">
+      <button class="lang-btn" id="langBtn" onclick="toggleLangDropdown()" title="Change language">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </button>
+      <div class="lang-dropdown" id="langDropdown">
+        <div class="lang-dd-hd">Interface Language</div>
+        <button class="lang-option active" data-lang="English" onclick="setLanguage('English',this)">
+          <span class="lang-flag">🇬🇧</span>
+          <div class="lang-info"><span class="lang-name">English</span><span class="lang-native">English</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Hindi" onclick="setLanguage('Hindi',this)">
+          <span class="lang-flag">🇮🇳</span>
+          <div class="lang-info"><span class="lang-name">Hindi</span><span class="lang-native">हिन्दी</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Tamil" onclick="setLanguage('Tamil',this)">
+          <span class="lang-flag">🇮🇳</span>
+          <div class="lang-info"><span class="lang-name">Tamil</span><span class="lang-native">தமிழ்</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Punjabi" onclick="setLanguage('Punjabi',this)">
+          <span class="lang-flag">🇮🇳</span>
+          <div class="lang-info"><span class="lang-name">Punjabi</span><span class="lang-native">ਪੰਜਾਬੀ</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Spanish" onclick="setLanguage('Spanish',this)">
+          <span class="lang-flag">🇪🇸</span>
+          <div class="lang-info"><span class="lang-name">Spanish</span><span class="lang-native">Español</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="French" onclick="setLanguage('French',this)">
+          <span class="lang-flag">🇫🇷</span>
+          <div class="lang-info"><span class="lang-name">French</span><span class="lang-native">Français</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="German" onclick="setLanguage('German',this)">
+          <span class="lang-flag">🇩🇪</span>
+          <div class="lang-info"><span class="lang-name">German</span><span class="lang-native">Deutsch</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Arabic" onclick="setLanguage('Arabic',this)">
+          <span class="lang-flag">🇸🇦</span>
+          <div class="lang-info"><span class="lang-name">Arabic</span><span class="lang-native">العربية</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Japanese" onclick="setLanguage('Japanese',this)">
+          <span class="lang-flag">🇯🇵</span>
+          <div class="lang-info"><span class="lang-name">Japanese</span><span class="lang-native">日本語</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Chinese" onclick="setLanguage('Chinese',this)">
+          <span class="lang-flag">🇨🇳</span>
+          <div class="lang-info"><span class="lang-name">Chinese</span><span class="lang-native">中文</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Portuguese" onclick="setLanguage('Portuguese',this)">
+          <span class="lang-flag">🇧🇷</span>
+          <div class="lang-info"><span class="lang-name">Portuguese</span><span class="lang-native">Português</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Russian" onclick="setLanguage('Russian',this)">
+          <span class="lang-flag">🇷🇺</span>
+          <div class="lang-info"><span class="lang-name">Russian</span><span class="lang-native">Русский</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Theme Button -->
     <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
       <svg id="ico-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       <svg id="ico-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -443,92 +410,50 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
   </div>
 </header>
 
-<!-- HERO -->
 <section class="hero">
-  <div class="hero-tag"><span class="hero-tag-dot"></span>AI Hallucination Detection Engine</div>
-  <h1 class="hero-h1">Catch what AI<br>gets <em>wrong.</em></h1>
-  <p class="hero-p">Structured hallucination analysis across 4 taxonomy types. Free instantly, or upgrade accuracy with your own API key.</p>
+  <div class="hero-tag"><span class="hero-tag-dot"></span>Because Facts Matter</div>
+  <h1 class="hero-h1">Scared of Hallucinations?<em>We're not.</em></h1>
+  <p class="hero-p">Structured hallucination analysis across 4 taxonomy types. Free with Groq AI, or unlock higher accuracy with your own key.</p>
   <div class="hero-stats">
-    <div class="hero-stat">
-      <span class="hero-stat-val">4</span>
-      <span class="hero-stat-lbl">Error Types</span>
-    </div>
-    <div class="hero-stat">
-      <span class="hero-stat-val">3</span>
-      <span class="hero-stat-lbl">Providers</span>
-    </div>
-    <div class="hero-stat">
-      <span class="hero-stat-val">100%</span>
-      <span class="hero-stat-lbl">Confidence Score</span>
-    </div>
-    <div class="hero-stat">
-      <span class="hero-stat-val">Groq</span>
-      <span class="hero-stat-lbl">Free Engine</span>
-    </div>
+    <div class="hero-stat"><span class="hero-stat-val">4</span><span class="hero-stat-lbl">Error Types</span></div>
+    <div class="hero-stat"><span class="hero-stat-val">3</span><span class="hero-stat-lbl">Providers</span></div>
+    <div class="hero-stat"><span class="hero-stat-val">12</span><span class="hero-stat-lbl">Languages</span></div>
+    <div class="hero-stat"><span class="hero-stat-val">Groq</span><span class="hero-stat-lbl">Free Engine</span></div>
   </div>
 </section>
 
-<!-- FEATURE STRIP -->
 <div class="feature-strip">
-  <div class="feat-item">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    Auto web search when no context given
-  </div>
+  <div class="feat-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Auto web search — real-time context</div>
   <div class="feat-sep"></div>
-  <div class="feat-item">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    Confidence scoring 0–100%
-  </div>
+  <div class="feat-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Correct answer from web when hallucinated</div>
   <div class="feat-sep"></div>
-  <div class="feat-item">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-    REST API with cURL &amp; Python support
-  </div>
+  <div class="feat-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/></svg>12 languages supported</div>
   <div class="feat-sep"></div>
-  <div class="feat-item">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    Keys never stored, session-only
-  </div>
+  <div class="feat-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Keys never stored</div>
 </div>
 
-<!-- PAGE -->
 <div class="page">
-  <!-- LEFT -->
   <div class="stack">
 
-    <!-- Provider -->
     <div class="panel">
       <div class="panel-hd">
-        <div class="panel-hd-left">
-          <div class="panel-hd-label">Step 1</div>
-          <div class="panel-hd-title">Choose Detection Engine</div>
-        </div>
+        <div class="panel-hd-left"><div class="panel-hd-label">Step 1</div><div class="panel-hd-title">Choose Detection Engine</div></div>
       </div>
       <div class="panel-body">
         <div class="prov-tabs">
           <button class="prov-tab active" id="mode-free" onclick="setMode('free')">
-            <span class="prov-tab-name">Free</span>
-            <span class="prov-tab-sub">Groq · Llama 3.1</span>
-            <span class="prov-tab-bar"></span>
+            <span class="prov-tab-name">Free</span><span class="prov-tab-sub">Groq · Llama 3.1</span><span class="prov-tab-bar"></span>
           </button>
           <button class="prov-tab" id="mode-openai" onclick="setMode('openai')">
-            <span class="prov-tab-name">GPT-4o</span>
-            <span class="prov-tab-sub">OpenAI</span>
-            <span class="prov-tab-bar"></span>
+            <span class="prov-tab-name">GPT-4o</span><span class="prov-tab-sub">OpenAI</span><span class="prov-tab-bar"></span>
           </button>
           <button class="prov-tab" id="mode-gemini" onclick="setMode('gemini')">
-            <span class="prov-tab-name">Gemini</span>
-            <span class="prov-tab-sub">Google</span>
-            <span class="prov-tab-bar"></span>
+            <span class="prov-tab-name">Gemini</span><span class="prov-tab-sub">Google</span><span class="prov-tab-bar"></span>
           </button>
         </div>
-
         <div class="notice open" id="free-notice">
-          <div class="notice-inner">
-            Free mode uses <strong>Groq · Llama 3.1 8B</strong> — a powerful open-source LLM running on Groq's free cloud infrastructure. No API key needed from you. For maximum accuracy on complex cases, switch to GPT-4o or Gemini.
-          </div>
+          <div class="notice-inner">Free mode uses <strong>Groq · Llama 3.1 8B</strong> — a powerful open-source LLM. No API key needed. For maximum accuracy switch to GPT-4o or Gemini.</div>
         </div>
-
         <div class="key-section" id="key-section">
           <div class="key-lbl">API Key</div>
           <div class="key-wrap">
@@ -538,27 +463,18 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
               <svg id="eye-closed" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             </button>
           </div>
-          <div class="key-foot">
-            <a class="key-link" id="key-link" href="#" target="_blank">Get API key →</a>
-          </div>
+          <div class="key-foot"><a class="key-link" id="key-link" href="#" target="_blank">Get API key →</a></div>
         </div>
       </div>
     </div>
 
-    <!-- Inputs -->
     <div class="panel">
       <div class="panel-hd">
-        <div class="panel-hd-left">
-          <div class="panel-hd-label">Step 2</div>
-          <div class="panel-hd-title">Provide Context &amp; Answer</div>
-        </div>
+        <div class="panel-hd-left"><div class="panel-hd-label">Step 2</div><div class="panel-hd-title">Provide Context &amp; Answer</div></div>
       </div>
       <div class="panel-body form-stack">
         <div class="field">
-          <div class="flabel">
-            Context Paragraph
-            <span class="lopt">optional — auto web search if blank</span>
-          </div>
+          <div class="flabel">Context Paragraph <span class="lopt">optional — auto web search if blank</span></div>
           <textarea id="paragraph" rows="3" placeholder="Paste reference context, or leave blank to auto-search the web…"></textarea>
         </div>
         <div class="divider"></div>
@@ -573,13 +489,9 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
       </div>
     </div>
 
-    <!-- Samples -->
     <div class="panel">
       <div class="panel-hd">
-        <div class="panel-hd-left">
-          <div class="panel-hd-label">Quick Start</div>
-          <div class="panel-hd-title">Load a Test Case</div>
-        </div>
+        <div class="panel-hd-left"><div class="panel-hd-label">Quick Start</div><div class="panel-hd-title">Load a Test Case</div></div>
       </div>
       <div class="panel-body-tight">
         <div class="samples-wrap">
@@ -592,52 +504,37 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
       </div>
     </div>
 
-    <!-- Error -->
     <div class="err-bar" id="errBar">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <span id="errMsg"></span>
     </div>
 
-    <!-- Run -->
     <button class="run-btn" id="runBtn" onclick="runDetection()">
       <span id="runContent" style="display:flex;align-items:center;gap:8px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-        Verify Now
-        <span class="kbd">⌘↵</span>
+        Verify Now <span class="kbd"></span>
       </span>
     </button>
 
-  </div><!-- /LEFT -->
+  </div>
 
-  <!-- RIGHT -->
   <div class="right-col">
 
-    <!-- Empty State -->
     <div class="empty-state" id="emptyState">
       <div class="empty-grid"></div>
-      <div class="empty-ico">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-      </div>
+      <div class="empty-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
       <div class="empty-h">Ready to verify</div>
       <div class="empty-p">Configure a provider, paste your inputs, and click Verify Now to analyse for hallucinations.</div>
       <div class="empty-hints">
-        <div class="empty-hint-row">
-          <div class="empty-hint-num">1</div>
-          <div class="empty-hint-text">Choose Free, GPT-4o, or Gemini as your analysis engine</div>
-        </div>
-        <div class="empty-hint-row">
-          <div class="empty-hint-num">2</div>
-          <div class="empty-hint-text">Add context — or leave blank to let Truthy search the web automatically</div>
-        </div>
-        <div class="empty-hint-row">
-          <div class="empty-hint-num">3</div>
-          <div class="empty-hint-text">Paste the question &amp; AI answer, then hit Verify Now</div>
-        </div>
+        <div class="empty-hint-row"><div class="empty-hint-num">1</div><div class="empty-hint-text">Choose Free (Groq), GPT-4o, or Gemini engine</div></div>
+        <div class="empty-hint-row"><div class="empty-hint-num">2</div><div class="empty-hint-text">Leave context blank — Truthy fetches real-time web data automatically</div></div>
+        <div class="empty-hint-row"><div class="empty-hint-num">3</div><div class="empty-hint-text">Get the verdict, explanation, and correct answer in your chosen language</div></div>
       </div>
     </div>
 
-    <!-- Result -->
     <div id="result" class="stack fade-in">
+
+      <!-- Verdict Card -->
       <div class="verdict-card">
         <div class="verdict-top">
           <div class="v-status-bar" id="vStatusBar"></div>
@@ -659,36 +556,45 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
         </div>
 
         <div class="type-row" id="typeRow" style="display:none"></div>
-        <div id="webSearchSection" style="display:none"></div>
 
         <div class="detail" id="elemSection" style="display:none">
-          <div class="detail-lbl">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Hallucinated Elements
-          </div>
+          <div class="detail-lbl"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Hallucinated Elements</div>
           <div class="elem-chips" id="elemChips"></div>
         </div>
+
         <div class="detail">
-          <div class="detail-lbl">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Explanation
-          </div>
+          <div class="detail-lbl"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Explanation</div>
           <div class="detail-body" id="expText"></div>
         </div>
+
         <div class="detail" id="correctSection" style="display:none">
-          <div class="detail-lbl" style="color:var(--ok)">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Correct Answer
-          </div>
+          <div class="detail-lbl" style="color:var(--ok)"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Correct Answer</div>
           <div class="correct-box" id="correctText"></div>
         </div>
+
         <div class="verdict-foot">
           <span class="prov-foot" id="provChip"></span>
           <span class="vf-time" id="vfTime"></span>
         </div>
       </div>
 
-      <!-- Code -->
+      <!-- Web Context Panel (structured) -->
+      <div class="wc-panel" id="webCtxPanel" style="display:none">
+        <div class="wc-hd">
+          <div class="wc-hd-left">
+            <svg class="wc-hd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span class="wc-hd-label">Web Context</span>
+            <span class="wc-auto-tag">AUTO</span>
+          </div>
+          <span style="font-size:10.5px;font-weight:500;color:var(--tx3)">Sources used for verification</span>
+        </div>
+        <div id="wcTitle" class="wc-title" style="display:none"></div>
+        <div id="wcSummary" class="wc-summary" style="display:none"></div>
+        <div id="wcFacts" class="wc-facts" style="display:none"></div>
+        <div id="wcSources" class="wc-sources" style="display:none"></div>
+      </div>
+
+      <!-- Code Card -->
       <div class="code-card" id="codeCard" style="display:none">
         <div class="code-hd">
           <div class="code-label">API Reference</div>
@@ -703,61 +609,30 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
         </div>
         <div class="code-body"><pre id="codePre"></pre></div>
       </div>
+
     </div>
 
     <!-- Taxonomy -->
     <div class="tax-panel">
       <div class="tax-hd">
-        <div class="tax-hd-left">
-          <div class="tax-hd-label">Reference</div>
-          <div class="tax-hd-title">Hallucination Taxonomy</div>
-        </div>
+        <div class="tax-hd-left"><div class="tax-hd-label">Reference</div><div class="tax-hd-title">Hallucination Taxonomy</div></div>
         <span style="font-size:10.5px;font-weight:500;color:var(--tx3)">Click to explore</span>
       </div>
-      <div class="tax-row" onclick="openTaxModal(0)">
-        <div class="tax-num">1</div>
-        <div class="tax-text">
-          <div class="tax-name">Out-of-Context Entity</div>
-          <div class="tax-desc">Fabricated entity absent from source context</div>
-        </div>
-        <span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
-      </div>
-      <div class="tax-row" onclick="openTaxModal(1)">
-        <div class="tax-num">2</div>
-        <div class="tax-text">
-          <div class="tax-name">Tuple Verification</div>
-          <div class="tax-desc">Real entities, incorrectly paired or linked</div>
-        </div>
-        <span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
-      </div>
-      <div class="tax-row" onclick="openTaxModal(2)">
-        <div class="tax-num">3</div>
-        <div class="tax-text">
-          <div class="tax-name">Out-of-Context Intent</div>
-          <div class="tax-desc">Correct entities, distorted relationship or intent</div>
-        </div>
-        <span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
-      </div>
-      <div class="tax-row" onclick="openTaxModal(3)">
-        <div class="tax-num">4</div>
-        <div class="tax-text">
-          <div class="tax-name">Triple Verification</div>
-          <div class="tax-desc">Full subject–predicate–object triple is wrong</div>
-        </div>
-        <span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
-      </div>
+      <div class="tax-row" onclick="openTaxModal(0)"><div class="tax-num">1</div><div class="tax-text"><div class="tax-name">Out-of-Context Entity</div><div class="tax-desc">Fabricated entity absent from source context</div></div><span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+      <div class="tax-row" onclick="openTaxModal(1)"><div class="tax-num">2</div><div class="tax-text"><div class="tax-name">Tuple Verification</div><div class="tax-desc">Real entities, incorrectly paired or linked</div></div><span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+      <div class="tax-row" onclick="openTaxModal(2)"><div class="tax-num">3</div><div class="tax-text"><div class="tax-name">Out-of-Context Intent</div><div class="tax-desc">Correct entities, distorted relationship or intent</div></div><span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+      <div class="tax-row" onclick="openTaxModal(3)"><div class="tax-num">4</div><div class="tax-text"><div class="tax-name">Triple Verification</div><div class="tax-desc">Full subject–predicate–object triple is wrong</div></div><span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
     </div>
 
-  </div><!-- /RIGHT -->
+  </div>
 </div>
 
-<!-- MODAL -->
 <div id="taxModal" style="display:none"></div>
 
 <script>
 const SAMPLES=[
-  {paragraph:"Inception is a 2010 science fiction film directed by Christopher Nolan. The film stars Leonardo DiCaprio as Dom Cobb.",question:"Who directed Inception?",answer:"Inception was directed by Steven Spielberg."},
-  {paragraph:"Apple Inc. was founded in 1976 by Steve Jobs, Steve Wozniak, and Ronald Wayne.",question:"Who were the founders of Apple?",answer:"Apple was founded by Bill Gates, Steve Jobs, and Paul Allen."},
+  {paragraph:"Inception is a 2010 science fiction film directed by Christopher Nolan.",question:"Who directed Inception?",answer:"Inception was directed by Steven Spielberg."},
+  {paragraph:"Apple Inc. was founded in 1976 by Steve Jobs, Steve Wozniak, and Ronald Wayne.",question:"Who founded Apple?",answer:"Apple was founded by Bill Gates, Steve Jobs, and Paul Allen."},
   {paragraph:"Tesla, Inc. was founded in 2003 by engineers Martin Eberhard and Marc Tarpenning.",question:"When was Tesla founded?",answer:"Tesla was founded in 2003 and is currently led by Elon Musk, who transformed it into the world's most valuable car company."},
   {paragraph:"Nineteen Eighty-Four by George Orwell depicts a totalitarian society exploring themes of government control, truth manipulation, and loss of individual freedom.",question:"What is the central theme of 1984?",answer:"The novel promotes the idea that strong surveillance creates stability and social harmony."},
   {paragraph:"",question:"Who won the 2018 FIFA World Cup?",answer:"The winner of the 2018 FIFA World Cup was Brazil."},
@@ -766,7 +641,7 @@ const SAMPLES=[
 const TAX_DATA=[
   {num:"1",name:"Out-of-Context Entity Hallucination",
    definition:"The model introduces a person, place, object, or concept not present in the context. The model fabricates an entity with no grounding in the source material.",
-   whenItOccurs:"Occurs when the model draws on training knowledge rather than strictly following context — inserting familiar but contextually incorrect names or facts.",
+   whenItOccurs:"Occurs when the model draws on training knowledge rather than following context — inserting familiar but incorrect names or facts.",
    question:"Who directed Inception?",wrongAnswer:"Steven Spielberg directed Inception.",rightAnswer:"Christopher Nolan directed Inception.",
    wrongReason:"Spielberg is a real director but has no connection to Inception — he is an out-of-context entity.",
    tags:["Fabricated entity","Context violation","Grounding error"]},
@@ -797,8 +672,9 @@ const TYPE_META={
   "4":{code:"4",name:"Triple Verification",def:"Full subject–predicate–object triple is wrong at every structural level."},
 };
 
-let currentMode="free",lastResult=null,lastInputs=null,activeTab="curl";
+let currentMode="free", currentLang="English", lastResult=null, lastInputs=null, activeTab="curl";
 
+// ── THEME ──
 function toggleTheme(){
   const h=document.documentElement,next=h.getAttribute("data-theme")==="dark"?"light":"dark";
   h.setAttribute("data-theme",next);
@@ -807,16 +683,37 @@ function toggleTheme(){
   try{localStorage.setItem("truthy-theme",next)}catch(e){}
 }
 (function(){
-  try{const s=localStorage.getItem("truthy-theme");if(s){document.documentElement.setAttribute("data-theme",s);document.getElementById("ico-moon").style.display=s==="dark"?"":"none";document.getElementById("ico-sun").style.display=s==="light"?"":"none";}}catch(e){}
+  try{
+    const s=localStorage.getItem("truthy-theme");
+    if(s){document.documentElement.setAttribute("data-theme",s);document.getElementById("ico-moon").style.display=s==="dark"?"":"none";document.getElementById("ico-sun").style.display=s==="light"?"":"none";}
+    const l=localStorage.getItem("truthy-lang");
+    if(l){currentLang=l;document.querySelectorAll(".lang-option").forEach(el=>{el.classList.toggle("active",el.dataset.lang===l)});}
+  }catch(e){}
 })();
 
+// ── LANGUAGE ──
+function toggleLangDropdown(){
+  document.getElementById("langDropdown").classList.toggle("open");
+}
+function setLanguage(lang, el){
+  currentLang=lang;
+  document.querySelectorAll(".lang-option").forEach(o=>o.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("langDropdown").classList.remove("open");
+  try{localStorage.setItem("truthy-lang",lang)}catch(e){}
+}
+document.addEventListener("click",e=>{
+  const dd=document.getElementById("langDropdown"),btn=document.getElementById("langBtn");
+  if(!dd.contains(e.target)&&!btn.contains(e.target))dd.classList.remove("open");
+});
+
+// ── MODE ──
 function setMode(m){
   currentMode=m;
   ["free","openai","gemini"].forEach(id=>document.getElementById("mode-"+id).classList.toggle("active",id===m));
   const ks=document.getElementById("key-section"),fn=document.getElementById("free-notice");
-  if(m==="free"){
-    ks.classList.remove("open");fn.classList.add("open");
-  }else{
+  if(m==="free"){ks.classList.remove("open");fn.classList.add("open");}
+  else{
     fn.classList.remove("open");ks.classList.add("open");
     const lnk=document.getElementById("key-link"),inp=document.getElementById("apiKey");
     if(m==="openai"){lnk.href="https://platform.openai.com/api-keys";lnk.textContent="Get OpenAI key →";inp.placeholder="sk-…";}
@@ -824,32 +721,23 @@ function setMode(m){
   }
   hideErr();
 }
-
 function toggleKey(){
   const inp=document.getElementById("apiKey"),eo=document.getElementById("eye-open"),ec=document.getElementById("eye-closed");
   inp.type=inp.type==="password"?(eo.style.display="none",ec.style.display="","text"):(eo.style.display="",ec.style.display="none","password");
 }
 
+// ── TAXONOMY MODAL ──
 function openTaxModal(idx){
-  const d=TAX_DATA[idx];
-  const wrap=document.getElementById("taxModal");
+  const d=TAX_DATA[idx],wrap=document.getElementById("taxModal");
   wrap.innerHTML=`<div class="modal-overlay" id="modalOverlay" onclick="closeTaxModal(event)">
     <div class="modal" id="modalBox">
       <div class="modal-hd">
-        <div style="flex:1">
-          <span class="modal-num-tag">Type ${d.num}</span>
-          <div class="modal-htitle">${d.name}</div>
-        </div>
-        <button class="modal-close" onclick="closeTaxModal(null,true)">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <div style="flex:1"><span class="modal-num-tag">Type ${d.num}</span><div class="modal-htitle">${d.name}</div></div>
+        <button class="modal-close" onclick="closeTaxModal(null,true)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="modal-body">
         <div class="modal-def">${d.definition}</div>
-        <div>
-          <div class="modal-sec-title">When does this occur?</div>
-          <div class="modal-def" style="font-size:13px">${d.whenItOccurs}</div>
-        </div>
+        <div><div class="modal-sec-title">When does this occur?</div><div class="modal-def" style="font-size:13px">${d.whenItOccurs}</div></div>
         <div>
           <div class="modal-sec-title">Example</div>
           <div class="modal-example-box">
@@ -859,10 +747,7 @@ function openTaxModal(idx){
             <div class="ex-item"><div class="ex-lbl">Why it's wrong</div><div class="ex-val" style="color:var(--tx3);font-size:11.5px">${d.wrongReason}</div></div>
           </div>
         </div>
-        <div>
-          <div class="modal-sec-title">Characteristics</div>
-          <div class="modal-tags">${d.tags.map(t=>`<span class="modal-tag">${t}</span>`).join('')}</div>
-        </div>
+        <div><div class="modal-sec-title">Characteristics</div><div class="modal-tags">${d.tags.map(t=>`<span class="modal-tag">${t}</span>`).join('')}</div></div>
       </div>
     </div>
   </div>`;
@@ -878,6 +763,7 @@ function closeTaxModal(e,force){
 }
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeTaxModal(null,true);});
 
+// ── SAMPLES ──
 function loadSample(i){
   const s=SAMPLES[i];
   document.getElementById("paragraph").value=s.paragraph;
@@ -889,6 +775,7 @@ function hideErr(){document.getElementById("errBar").classList.remove("show")}
 function showErr(msg){document.getElementById("errMsg").textContent=msg;document.getElementById("errBar").classList.add("show")}
 function hideResult(){document.getElementById("result").style.display="none";document.getElementById("emptyState").style.display="block"}
 
+// ── RUN ──
 async function runDetection(){
   const apiKey=document.getElementById("apiKey").value.trim();
   const paragraph=document.getElementById("paragraph").value.trim();
@@ -904,9 +791,9 @@ async function runDetection(){
     ?'<div class="spinner"></div> Searching web<span class="searching-dots"><span>.</span><span>.</span><span>.</span></span>'
     :'<div class="spinner"></div> Analysing…';
   try{
-    const headers={"Content-Type":"application/json","X-Provider":currentMode};
+    const headers={"Content-Type":"application/json","X-Provider":currentMode,"X-Language":currentLang};
     if(currentMode!=="free")headers["X-API-Key"]=apiKey;
-    const res=await fetch("/detect",{method:"POST",headers,body:JSON.stringify({paragraph,question,answer})});
+    const res=await fetch("/detect",{method:"POST",headers,body:JSON.stringify({paragraph,question,answer,language:currentLang})});
     const data=await res.json();
     if(!res.ok){showErr(data.detail||"Server error.");return;}
     lastResult=data;lastInputs={paragraph,question,answer};
@@ -918,11 +805,11 @@ async function runDetection(){
   }
 }
 
+// ── RENDER RESULT ──
 function renderResult(d){
   document.getElementById("emptyState").style.display="none";
   document.getElementById("result").style.display="flex";
-  const isH=d.is_hallucinated,cls=isH?"hall":"clean";
-  const color=isH?"var(--err)":"var(--ok)";
+  const isH=d.is_hallucinated,cls=isH?"hall":"clean",color=isH?"var(--err)":"var(--ok)";
 
   document.getElementById("vStatusBar").className="v-status-bar "+cls;
   const vi=document.getElementById("vIcon");vi.className="v-icon "+cls;
@@ -945,15 +832,8 @@ function renderResult(d){
     tr.innerHTML='<span class="type-tag">'+(m.code||code)+'</span><div><div class="type-name">'+(m.name||code)+'</div><div class="type-def">'+(m.def||'')+'</div></div>';
   }else{tr.style.display="none";}
 
-  const wsEl=document.getElementById("webSearchSection");
-  if(d.web_search_used&&d.web_context){
-    const srcsHtml=(d.sources||[]).slice(0,3).map(s=>`<a class="ws-src" href="${s.url}" target="_blank" rel="noopener"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>${s.title.slice(0,38)}</a>`).join('');
-    wsEl.style.display="block";
-    wsEl.innerHTML=`<div class="ws-banner"><div class="ws-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="ws-body"><div class="ws-title">Web context fetched automatically <span class="ws-auto-tag">AUTO</span></div><div class="ws-snippet">${d.web_context.slice(0,180)}${d.web_context.length>180?'…':''}</div>${srcsHtml?'<div class="ws-sources">'+srcsHtml+'</div>':''}</div></div>`;
-  }else{wsEl.style.display="none";wsEl.innerHTML="";}
-
   const es=document.getElementById("elemSection"),ec=document.getElementById("elemChips");ec.innerHTML="";
-  if(isH&&d.hallucinated_elements.length>0){
+  if(isH&&d.hallucinated_elements&&d.hallucinated_elements.length>0){
     es.style.display="block";
     d.hallucinated_elements.forEach(el=>{const c=document.createElement("span");c.className="elem-chip";c.innerHTML='<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> '+el;ec.appendChild(c);});
   }else{es.style.display="none";}
@@ -964,11 +844,61 @@ function renderResult(d){
   else{cs.style.display="none";}
 
   const pm={free:"Groq · Llama 3.1 8B",openai:"OpenAI · GPT-4o",gemini:"Google · Gemini 1.5"}[d.provider]||d.provider;
-  document.getElementById("provChip").innerHTML='<span class="prov-foot-dot"></span>'+pm;
+  const langLabel=d.language&&d.language!=="English"?` · ${d.language}`:"";
+  document.getElementById("provChip").innerHTML='<span class="prov-foot-dot"></span>'+pm+langLabel;
   document.getElementById("vfTime").textContent=new Date().toLocaleTimeString();
+
+  // Render structured web context
+  renderWebContext(d);
+
   buildCode("curl");document.getElementById("codeCard").style.display="block";
 }
 
+function renderWebContext(d){
+  const panel=document.getElementById("webCtxPanel");
+  if(!d.web_search_used){panel.style.display="none";return;}
+
+  panel.style.display="block";
+  const wc=d.web_context_structured||{};
+
+  const titleEl=document.getElementById("wcTitle");
+  if(wc.title){titleEl.textContent=wc.title;titleEl.style.display="block";}
+  else{titleEl.style.display="none";}
+
+  const summEl=document.getElementById("wcSummary");
+  if(wc.summary){
+    // Trim to clean readable length
+    summEl.textContent=wc.summary.length>500?wc.summary.slice(0,500)+"…":wc.summary;
+    summEl.style.display="block";
+  }else{summEl.style.display="none";}
+
+  const factsEl=document.getElementById("wcFacts");
+  if(wc.facts&&wc.facts.length>0){
+    factsEl.innerHTML=wc.facts.slice(0,8).map(f=>`
+      <div class="wc-fact">
+        <div class="wc-fact-label">${escHtml(f.label)}</div>
+        <div class="wc-fact-value">${escHtml(String(f.value))}</div>
+      </div>`).join('');
+    factsEl.style.display="grid";
+  }else{factsEl.style.display="none";}
+
+  const srcsEl=document.getElementById("wcSources");
+  const sources=d.sources||[];
+  if(sources.length>0){
+    srcsEl.innerHTML=sources.slice(0,4).map(s=>`
+      <a class="wc-src" href="${escHtml(s.url)}" target="_blank" rel="noopener">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        ${escHtml(s.title.slice(0,40))}
+      </a>`).join('');
+    srcsEl.style.display="flex";
+  }else{srcsEl.style.display="none";}
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── CODE CARD ──
 function switchTab(t){
   activeTab=t;
   document.querySelectorAll(".code-tab").forEach((el,i)=>el.classList.toggle("active",["curl","python","json"][i]===t));
@@ -981,12 +911,12 @@ function buildCode(tab){
   const esc=s=>s.replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g,"\\n");
   const isFree=d.provider==="free";
   if(tab==="curl"){
-    pre.innerHTML='<span class="t-curl">curl</span> <span class="t-flag">-X POST</span> <span class="t-url">'+o+'/detect</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"Content-Type: application/json"</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-Provider: '+d.provider+'"</span>'+(isFree?'':' \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-API-Key: YOUR_KEY_HERE"</span>')+' \\\n  <span class="t-flag">-d</span> <span class="t-str">\'{"question":"'+esc(inp.question)+'","answer":"'+esc(inp.answer.slice(0,50))+'..."}\'</span>';
+    pre.innerHTML='<span class="t-curl">curl</span> <span class="t-flag">-X POST</span> <span class="t-url">'+o+'/detect</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"Content-Type: application/json"</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-Provider: '+d.provider+'"</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-Language: '+escHtml(d.language||'English')+'"</span>'+(isFree?'':' \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-API-Key: YOUR_KEY_HERE"</span>')+' \\\n  <span class="t-flag">-d</span> <span class="t-str">\'{"question":"'+esc(inp.question)+'","answer":"'+esc(inp.answer.slice(0,50))+'..."}\'</span>';
   }else if(tab==="python"){
-    pre.innerHTML='<span class="t-flag">import</span> requests\n\nresponse = requests.<span class="t-curl">post</span>(\n    <span class="t-str">"'+o+'/detect"</span>,\n    headers={\n        <span class="t-str">"X-Provider"</span>: <span class="t-str">"'+d.provider+'"</span>,'+(isFree?'':'\n        <span class="t-str">"X-API-Key"</span>: <span class="t-str">"YOUR_KEY"</span>,')+'\n    },\n    json={"question": <span class="t-str">"'+esc(inp.question)+'"</span>, "answer": <span class="t-str">"..."</span>}\n)\n<span class="t-curl">print</span>(response.json())';
+    pre.innerHTML='<span class="t-flag">import</span> requests\n\nresponse = requests.<span class="t-curl">post</span>(\n    <span class="t-str">"'+o+'/detect"</span>,\n    headers={\n        <span class="t-str">"X-Provider"</span>: <span class="t-str">"'+d.provider+'"</span>,\n        <span class="t-str">"X-Language"</span>: <span class="t-str">"'+escHtml(d.language||'English')+'"</span>,'+(isFree?'':'\n        <span class="t-str">"X-API-Key"</span>: <span class="t-str">"YOUR_KEY"</span>,')+'\n    },\n    json={"question": <span class="t-str">"'+esc(inp.question)+'"</span>, "answer": <span class="t-str">"..."</span>}\n)\n<span class="t-curl">print</span>(response.json())';
   }else{
     const r=lastResult;
-    pre.innerHTML='{\n  <span class="t-key">"is_hallucinated"</span>: <span class="'+(r.is_hallucinated?'t-bool-f':'t-bool-t')+'">'+r.is_hallucinated+'</span>,\n  <span class="t-key">"confidence"</span>:      <span class="t-num">'+r.confidence+'</span>,\n  <span class="t-key">"hallucination_types"</span>: <span class="t-str">'+JSON.stringify(r.hallucination_types)+'</span>,\n  <span class="t-key">"explanation"</span>:    <span class="t-str">"'+esc(r.explanation.slice(0,80))+(r.explanation.length>80?'..':'')+'\"</span>,\n  <span class="t-key">"provider"</span>:       <span class="t-str">"'+r.provider+'"</span>\n}';
+    pre.innerHTML='{\n  <span class="t-key">"is_hallucinated"</span>: <span class="'+(r.is_hallucinated?'t-bool-f':'t-bool-t')+'">'+r.is_hallucinated+'</span>,\n  <span class="t-key">"confidence"</span>:      <span class="t-num">'+r.confidence+'</span>,\n  <span class="t-key">"hallucination_types"</span>: <span class="t-str">'+JSON.stringify(r.hallucination_types)+'</span>,\n  <span class="t-key">"language"</span>:       <span class="t-str">"'+(r.language||'English')+'"</span>,\n  <span class="t-key">"explanation"</span>:    <span class="t-str">"'+esc((r.explanation||'').slice(0,80))+((r.explanation||'').length>80?'..':'')+'\"</span>,\n  <span class="t-key">"correct_answer"</span>: <span class="t-str">"'+esc((r.correct_answer||'').slice(0,80))+'"</span>,\n  <span class="t-key">"provider"</span>:       <span class="t-str">"'+r.provider+'"</span>\n}';
   }
 }
 function copyCode(){

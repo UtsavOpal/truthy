@@ -1,8 +1,10 @@
 """
-Truthy — Hallucination Detector API  v5.0
-Free mode: Ollama local LLM (phi3:mini or any available model)
-All modes: multi-source real-time web search when no context provided
-Best-in-class free web search: Brave Search API > DuckDuckGo > Wikipedia
+Truthy — Hallucination Detector API  v7.0
+- Free mode  : Groq API (Llama 3.1 8B)
+- All modes  : Multi-source real-time web search (Brave > DuckDuckGo > Wikipedia)
+- Web context: Returned as clean structured JSON (title + facts + summary)
+- Correct answer derived from web context when hallucination detected
+- Language: passed via X-Language header; LLM responds in that language
 """
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,15 +17,7 @@ import pathlib, urllib.request, urllib.parse, json, re, os
 from src.detector import HallucinationDetector
 from src.models   import DetectionInput
 
-app = FastAPI(
-    title="Truthy — Hallucination Detector API", version="5.0.0",
-    description=(
-        "Detect LLM hallucinations. Provider via `X-Provider` header: `free`, `openai`, `gemini`.\n"
-        "For `openai`/`gemini` pass key in `X-API-Key`.\n"
-        "When no paragraph is provided, the API automatically fetches real-time web context.\n"
-        "Free mode uses Ollama local LLM; falls back to heuristics if Ollama is unavailable."
-    ),
-)
+app = FastAPI(title="Truthy — Hallucination Detector API", version="7.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 static_dir = pathlib.Path("static")
@@ -32,187 +26,193 @@ if static_dir.exists():
 
 
 # ═══════════════════════════════════════════════════════════════
-# WEB SEARCH — Multi-source, real-time, best accuracy
+# WEB SEARCH — Multi-source, real-time
 # Priority: Brave Search API → DuckDuckGo → Wikipedia REST → Wikipedia Search
+# Returns structured WebContext object instead of raw string
 # ═══════════════════════════════════════════════════════════════
 
+class WebContext:
+    """Structured web context with title, key facts, and summary paragraphs."""
+    def __init__(self):
+        self.title:   str        = ""
+        self.facts:   list[dict] = []   # [{label, value}, ...]
+        self.summary: str        = ""
+        self.sources: list[dict] = []   # [{title, url, snippet}, ...]
+
+    def to_paragraph(self) -> str:
+        """Convert to plain paragraph for the LLM detector."""
+        parts = []
+        if self.title:
+            parts.append(f"Topic: {self.title}")
+        if self.summary:
+            parts.append(self.summary)
+        if self.facts:
+            facts_str = "; ".join(f"{f['label']}: {f['value']}" for f in self.facts[:8])
+            parts.append(f"Key facts: {facts_str}")
+        return "\n\n".join(parts).strip()
+
+    def to_dict(self) -> dict:
+        return {
+            "title":   self.title,
+            "facts":   self.facts,
+            "summary": self.summary,
+            "sources": self.sources,
+        }
+
+
 def _clean_query(question: str) -> str:
-    """Build a clean, focused search query from the question."""
     q = question.strip()
-    q = re.sub(r'^(what|who|when|where|why|how|which|is|are|was|were|did|do|does|tell me about)\s+',
-               '', q, flags=re.IGNORECASE)
+    q = re.sub(
+        r'^(what|who|when|where|why|how|which|is|are|was|were|did|do|does|tell me about)\s+',
+        '', q, flags=re.IGNORECASE
+    )
     return q[:200] if len(q) > 10 else question[:200]
 
 
-def _brave_search(query: str, api_key: str) -> tuple[list[str], list[dict]]:
-    """
-    Brave Search API — best free real-time web search.
-    Free tier: 2,000 queries/month. Sign up: https://api.search.brave.com
-    Returns (context_parts, sources)
-    """
+def _brave_search(query: str, api_key: str, ctx: WebContext):
     url = ("https://api.search.brave.com/res/v1/web/search?"
            + urllib.parse.urlencode({"q": query, "count": 5, "text_decorations": 0, "search_lang": "en"}))
     req = urllib.request.Request(url, headers={
-        "Accept":               "application/json",
-        "Accept-Encoding":      "gzip",
+        "Accept": "application/json",
         "X-Subscription-Token": api_key,
-        "User-Agent":           "TruthyDetector/5.0",
+        "User-Agent": "TruthyDetector/7.0",
     })
-    with urllib.request.urlopen(req, timeout=7) as r:
+    with urllib.request.urlopen(req, timeout=8) as r:
         data = json.loads(r.read())
 
-    parts   = []
-    sources = []
     results = data.get("web", {}).get("results", [])
-
+    summaries = []
     for item in results[:4]:
         title   = item.get("title", "")
         snippet = item.get("description", "")
         url_val = item.get("url", "")
         if snippet:
-            parts.append(f"{title}: {snippet}")
-            sources.append({"title": title, "url": url_val, "snippet": snippet[:200]})
+            summaries.append(f"{title}: {snippet}")
+            ctx.sources.append({"title": title, "url": url_val, "snippet": snippet[:200]})
 
-    # Also grab featured snippet / infobox if present
-    if data.get("query", {}).get("answer"):
-        parts.insert(0, data["query"]["answer"])
+    if summaries:
+        ctx.summary = " ".join(summaries[:3])
+        if not ctx.title and results:
+            ctx.title = results[0].get("title", "")
 
-    return parts, sources
 
-
-def _duckduckgo_search(query: str) -> tuple[list[str], list[dict]]:
-    """DuckDuckGo Instant Answer API — no key needed, limited to Wikipedia-style facts."""
+def _duckduckgo_search(query: str, ctx: WebContext):
     url = ("https://api.duckduckgo.com/?"
            + urllib.parse.urlencode({"q": query, "format": "json",
                                      "no_redirect": 1, "no_html": 1, "skip_disambig": 1}))
-    req = urllib.request.Request(url, headers={"User-Agent": "TruthyDetector/5.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "TruthyDetector/7.0"})
     with urllib.request.urlopen(req, timeout=6) as r:
         ddg = json.loads(r.read())
 
-    parts   = []
-    sources = []
-
-    if ddg.get("Answer"):
-        parts.append(f"Direct answer: {ddg['Answer']}")
+    if ddg.get("Heading"):
+        ctx.title = ddg["Heading"]
 
     if ddg.get("AbstractText"):
-        parts.append(ddg["AbstractText"])
-        sources.append({
+        ctx.summary = ddg["AbstractText"]
+        ctx.sources.append({
             "title":   ddg.get("Heading", "Wikipedia"),
             "url":     ddg.get("AbstractURL", "https://en.wikipedia.org"),
             "snippet": ddg["AbstractText"][:200],
         })
 
+    if ddg.get("Answer"):
+        ctx.facts.insert(0, {"label": "Direct Answer", "value": ddg["Answer"]})
+
     if ddg.get("Infobox") and isinstance(ddg["Infobox"], dict):
-        facts = []
-        for item in ddg["Infobox"].get("content", [])[:6]:
+        for item in ddg["Infobox"].get("content", [])[:10]:
             if item.get("label") and item.get("value"):
-                facts.append(f"{item['label']}: {item['value']}")
-        if facts:
-            parts.append("Key facts: " + "; ".join(facts))
+                ctx.facts.append({"label": item["label"], "value": str(item["value"])})
 
     for rt in (ddg.get("RelatedTopics") or [])[:3]:
-        if isinstance(rt, dict) and rt.get("Text"):
-            parts.append(rt["Text"])
-            if rt.get("FirstURL"):
-                sources.append({
-                    "title":   rt["Text"][:60],
-                    "url":     rt["FirstURL"],
-                    "snippet": rt["Text"][:200],
-                })
-
-    return parts, sources
+        if isinstance(rt, dict) and rt.get("Text") and rt.get("FirstURL"):
+            ctx.sources.append({
+                "title":   rt["Text"][:60],
+                "url":     rt["FirstURL"],
+                "snippet": rt["Text"][:200],
+            })
 
 
-def _wikipedia_rest(query: str) -> tuple[list[str], list[dict]]:
-    """Wikipedia REST API — reliable, structured, always available."""
+def _wikipedia_rest(query: str, ctx: WebContext):
     url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(query[:100])}"
-    req = urllib.request.Request(url, headers={"User-Agent": "TruthyDetector/5.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "TruthyDetector/7.0"})
     with urllib.request.urlopen(req, timeout=7) as r:
         wiki = json.loads(r.read())
 
     if not wiki.get("extract"):
-        return [], []
+        return
 
-    extract = wiki["extract"]
+    if not ctx.title:
+        ctx.title = wiki.get("title", "")
+    if not ctx.summary:
+        ctx.summary = wiki["extract"][:800]
+
     page_url = wiki.get("content_urls", {}).get("desktop", {}).get("page", "https://en.wikipedia.org")
-    return (
-        [extract[:800]],
-        [{"title": wiki.get("title", "Wikipedia"), "url": page_url, "snippet": extract[:200]}]
-    )
+    if not any(s["url"] == page_url for s in ctx.sources):
+        ctx.sources.append({
+            "title":   wiki.get("title", "Wikipedia"),
+            "url":     page_url,
+            "snippet": wiki["extract"][:200],
+        })
 
 
-def _wikipedia_search(query: str) -> tuple[list[str], list[dict]]:
-    """Wikipedia search API — broader fallback when exact page not found."""
+def _wikipedia_search(query: str, ctx: WebContext):
     url = ("https://en.wikipedia.org/w/api.php?"
            + urllib.parse.urlencode({
                "action": "query", "list": "search",
                "srsearch": query[:100], "format": "json", "srlimit": 3,
            }))
-    req = urllib.request.Request(url, headers={"User-Agent": "TruthyDetector/5.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "TruthyDetector/7.0"})
     with urllib.request.urlopen(req, timeout=6) as r:
         data = json.loads(r.read())
 
-    results = data.get("query", {}).get("search", [])
-    parts, sources = [], []
-    for item in results[:2]:
+    for item in data.get("query", {}).get("search", [])[:2]:
         snippet = re.sub(r'<[^>]+>', '', item.get("snippet", ""))
         title   = item.get("title", "")
         if snippet:
-            parts.append(f"{title}: {snippet}")
-            sources.append({
-                "title":   title,
-                "url":     f"https://en.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}",
+            if not ctx.summary:
+                ctx.summary = f"{title}: {snippet}"
+            ctx.sources.append({
+                "title": title,
+                "url":   f"https://en.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}",
                 "snippet": snippet[:200],
             })
-    return parts, sources
 
 
-def web_search_context(question: str, answer: str) -> tuple[str, list]:
+def web_search_context(question: str) -> WebContext:
     """
-    Fetch real-time web context using best available source.
-    Priority: Brave Search API (if key set) → DuckDuckGo → Wikipedia REST → Wikipedia Search
-    Returns (context_paragraph, sources_list)
+    Fetch real-time web context from multiple sources.
+    Returns structured WebContext with title, facts, summary, and sources.
     """
-    query   = _clean_query(question)
-    parts   = []
-    sources = []
+    query = _clean_query(question)
+    ctx   = WebContext()
 
-    # 1. Brave Search (best accuracy, free tier 2k/month)
     brave_key = os.environ.get("BRAVE_API_KEY", "").strip()
     if brave_key:
         try:
-            p, s = _brave_search(query, brave_key)
-            parts.extend(p); sources.extend(s)
+            _brave_search(query, brave_key, ctx)
         except Exception:
             pass
 
-    # 2. DuckDuckGo (no key, good for Wikipedia-style facts)
-    if not parts:
+    if not ctx.summary:
         try:
-            p, s = _duckduckgo_search(query)
-            parts.extend(p); sources.extend(s)
+            _duckduckgo_search(query, ctx)
         except Exception:
             pass
 
-    # 3. Wikipedia REST (direct page summary — very reliable)
-    if len(" ".join(parts)) < 150:
+    if len(ctx.summary) < 150:
         try:
-            p, s = _wikipedia_rest(query)
-            parts.extend(p); sources.extend(s)
+            _wikipedia_rest(query, ctx)
         except Exception:
             pass
 
-    # 4. Wikipedia Search (broad fallback)
-    if not parts:
+    if not ctx.summary:
         try:
-            p, s = _wikipedia_search(query)
-            parts.extend(p); sources.extend(s)
+            _wikipedia_search(query, ctx)
         except Exception:
             pass
 
-    context = "\n\n".join(parts).strip()
-    return context, sources[:4]
+    ctx.sources = ctx.sources[:4]
+    return ctx
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -223,11 +223,17 @@ class DetectRequest(BaseModel):
     paragraph: str = Field(default="")
     question:  str = Field(...)
     answer:    str = Field(...)
+    language:  str = Field(default="English")
 
 class SourceInfo(BaseModel):
     title:   str
     url:     str
     snippet: str
+
+class WebContextInfo(BaseModel):
+    title:   str = ""
+    facts:   list[dict] = []
+    summary: str = ""
 
 class DetectResponse(BaseModel):
     is_hallucinated:       bool
@@ -238,8 +244,10 @@ class DetectResponse(BaseModel):
     explanation:           str
     correct_answer:        str
     provider:              str
-    web_search_used:       bool          = False
-    web_context:           str           = ""
+    language:              str          = "English"
+    web_search_used:       bool         = False
+    web_context_raw:       str          = ""
+    web_context_structured: WebContextInfo = WebContextInfo()
     sources:               list[SourceInfo] = []
 
 
@@ -260,11 +268,12 @@ def sitemap():
 @app.get("/health", tags=["System"])
 def health():
     return {
-        "status": "ok", "version": "5.0.0",
+        "status": "ok", "version": "7.0.0",
         "providers": ["free", "openai", "gemini"],
-        "free_mode": "ollama_with_heuristic_fallback",
+        "free_mode": "groq_llama3.1_8b",
         "web_search": "brave+duckduckgo+wikipedia",
-        "brave_key_configured": bool(os.environ.get("BRAVE_API_KEY")),
+        "brave_configured": bool(os.environ.get("BRAVE_API_KEY")),
+        "groq_configured":  bool(os.environ.get("GROQ_API_KEY")),
     }
 
 @app.post("/detect", response_model=DetectResponse, tags=["Detection"])
@@ -272,56 +281,71 @@ def detect(
     req:        DetectRequest,
     x_api_key:  Optional[str] = Header(default="",     alias="X-API-Key"),
     x_provider: Optional[str] = Header(default="free", alias="X-Provider"),
+    x_language: Optional[str] = Header(default="English", alias="X-Language"),
 ):
     provider = (x_provider or "free").strip().lower()
+    language = (x_language or req.language or "English").strip()
+
     if provider not in ("free", "openai", "gemini"):
         raise HTTPException(400, "X-Provider must be: free, openai, or gemini.")
     if provider in ("openai", "gemini") and not (x_api_key or "").strip():
-        raise HTTPException(401, f"X-API-Key header required for provider '{provider}'.")
+        raise HTTPException(401, f"X-API-Key required for provider '{provider}'.")
 
     paragraph       = req.paragraph.strip()
     web_search_used = False
-    web_context     = ""
+    web_ctx_raw     = ""
+    web_ctx_struct  = WebContextInfo()
     sources         = []
 
-    # Auto web search when no context provided (all providers)
+    # Auto web search when no context provided
     if not paragraph:
         try:
-            web_context, sources = web_search_context(req.question, req.answer)
-            if web_context:
-                paragraph       = web_context
+            wctx = web_search_context(req.question)
+            para_from_web = wctx.to_paragraph()
+            if para_from_web:
+                paragraph       = para_from_web
                 web_search_used = True
+                web_ctx_raw     = para_from_web
+                web_ctx_struct  = WebContextInfo(
+                    title   = wctx.title,
+                    facts   = wctx.facts,
+                    summary = wctx.summary,
+                )
+                sources = wctx.sources
         except Exception:
-            pass  # fallback to world-knowledge mode
+            pass
 
     try:
         detector = HallucinationDetector(
             provider=provider,
-            api_key=(x_api_key or "").strip()
+            api_key=(x_api_key or "").strip(),
+            language=language,
         )
         result = detector.detect(DetectionInput(
             paragraph=paragraph,
             question=req.question,
-            answer=req.answer
+            answer=req.answer,
         ))
     except Exception as e:
         msg = str(e)
-        if any(k in msg.lower() for k in ["invalid_api_key", "authentication", "401", "api key"]):
+        if any(k in msg.lower() for k in ["invalid_api_key","authentication","401","api key"]):
             raise HTTPException(401, "Invalid API key.")
-        if any(k in msg.lower() for k in ["quota", "rate_limit", "429", "exceeded"]):
-            raise HTTPException(429, "Rate limit or quota exceeded. Try again shortly.")
+        if any(k in msg.lower() for k in ["quota","rate_limit","429","exceeded"]):
+            raise HTTPException(429, "Rate limit exceeded. Try again shortly.")
         raise HTTPException(500, msg)
 
     return DetectResponse(
-        is_hallucinated       = result.is_hallucinated,
-        confidence            = result.confidence,
-        hallucination_types   = result.type_codes,
-        hallucination_names   = [t.display_name for t in result.hallucination_types],
-        hallucinated_elements = result.hallucinated_elements,
-        explanation           = result.explanation,
-        correct_answer        = result.correct_answer,
-        provider              = provider,
-        web_search_used       = web_search_used,
-        web_context           = web_context if web_search_used else "",
-        sources               = [SourceInfo(**s) for s in sources],
+        is_hallucinated        = result.is_hallucinated,
+        confidence             = result.confidence,
+        hallucination_types    = result.type_codes,
+        hallucination_names    = [t.display_name for t in result.hallucination_types],
+        hallucinated_elements  = result.hallucinated_elements,
+        explanation            = result.explanation,
+        correct_answer         = result.correct_answer,
+        provider               = provider,
+        language               = language,
+        web_search_used        = web_search_used,
+        web_context_raw        = web_ctx_raw,
+        web_context_structured = web_ctx_struct,
+        sources                = [SourceInfo(**s) for s in sources],
     )
