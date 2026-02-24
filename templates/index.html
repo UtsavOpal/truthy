@@ -3,187 +3,352 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<title>TruthyAI - Your personal fact verifier</title>
+<title>Truthy — AI Hallucination Detector</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;0,900;1,400;1,700&display=swap" rel="stylesheet"/>
 <style>
+/* ─────────────────────────────────────────────
+   TOKENS
+───────────────────────────────────────────── */
 :root{
   --r:6px;--r-md:10px;--r-lg:14px;--r-xl:18px;
-  --ease:cubic-bezier(.4,0,.2,1);--t:.18s var(--ease);--topbar-h:54px;
+  --ease:cubic-bezier(.4,0,.2,1);--t:.18s var(--ease);--topbar-h:56px;
   --ok:#16a34a;--ok-d:rgba(22,163,74,.10);--ok-b:rgba(22,163,74,.22);
   --err:#dc2626;--err-d:rgba(220,38,38,.10);--err-b:rgba(220,38,38,.22);
+  --page-max:1320px;
 }
 [data-theme="dark"]{
   --bg:#000;--sur:#0d0d0d;--s2:#141414;--s3:#1c1c1c;--s4:#252525;
   --bd:rgba(255,255,255,.09);--bd2:rgba(255,255,255,.16);
   --tx:#f5f5f5;--tx2:#a3a3a3;--tx3:#636363;
-  --glass:rgba(0,0,0,.88);--sh:0 0 0 1px rgba(255,255,255,.07),0 8px 40px rgba(0,0,0,.7);
+  --glass:rgba(0,0,0,.88);
+  --sh:0 0 0 1px rgba(255,255,255,.06),0 8px 40px rgba(0,0,0,.7);
 }
 [data-theme="light"]{
-  --bg:#f2f2f2;--sur:#fff;--s2:#f8f8f8;--s3:#eee;--s4:#e0e0e0;
+  --bg:#f0f0f0;--sur:#fff;--s2:#f8f8f8;--s3:#efefef;--s4:#e2e2e2;
   --bd:rgba(0,0,0,.10);--bd2:rgba(0,0,0,.18);
   --tx:#111;--tx2:#4a4a4a;--tx3:#888;
-  --glass:rgba(242,242,242,.92);--sh:0 0 0 1px rgba(0,0,0,.08),0 4px 20px rgba(0,0,0,.07);
+  --glass:rgba(240,240,240,.92);
+  --sh:0 0 0 1px rgba(0,0,0,.07),0 4px 24px rgba(0,0,0,.07);
   --ok:#15803d;--ok-d:rgba(21,128,61,.09);--ok-b:rgba(21,128,61,.22);
   --err:#b91c1c;--err-d:rgba(185,28,28,.09);--err-b:rgba(185,28,28,.22);
 }
+
+/* ─────────────────────────────────────────────
+   RESET
+───────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{height:100%;-webkit-font-smoothing:antialiased}
-body{min-height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;transition:background var(--t),color var(--t);overflow-x:hidden}
-button{font-family:inherit;cursor:pointer}
-img,svg{display:block}
+html{height:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{
+  min-height:100%;background:var(--bg);color:var(--tx);
+  font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;
+  transition:background var(--t),color var(--t);overflow-x:hidden;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:transparent}
+a{color:inherit;text-decoration:none}
+img,svg{display:block;max-width:100%}
+textarea,input{font-family:inherit}
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--s4);border-radius:99px}
 
-/* ── TOPBAR ── */
-.topbar{position:sticky;top:0;z-index:300;height:var(--topbar-h);display:flex;align-items:center;padding:0 28px;gap:14px;background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--bd)}
-.logo{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0}
-.logo-icon{width:28px;height:28px;border-radius:7px;background:var(--tx);color:var(--bg);display:grid;place-items:center;flex-shrink:0}
+/* ─────────────────────────────────────────────
+   TOPBAR
+───────────────────────────────────────────── */
+.topbar{
+  position:sticky;top:0;z-index:300;height:var(--topbar-h);
+  display:flex;align-items:center;padding:0 clamp(14px,4vw,40px);gap:12px;
+  background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--bd);
+}
+.logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.logo-icon{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--tx);color:var(--bg);
+  display:grid;place-items:center;flex-shrink:0;
+}
 .logo-name{font-size:15px;font-weight:800;color:var(--tx);letter-spacing:-.5px}
-.logo-ver{font-size:9.5px;font-weight:600;color:var(--tx3);letter-spacing:.05em;margin-left:1px;padding-bottom:1px;align-self:flex-end}
+.logo-ver{
+  font-size:9px;font-weight:600;color:var(--tx3);
+  letter-spacing:.06em;align-self:flex-end;padding-bottom:1px;
+}
 .nav-sep{width:1px;height:18px;background:var(--bd2);flex-shrink:0}
 .nav-pills{display:flex;gap:2px}
-.nav-pill{font-size:11px;font-weight:500;color:var(--tx3);padding:4px 10px;border-radius:var(--r);background:transparent;border:none;transition:all var(--t);text-decoration:none}
+.nav-pill{
+  font-size:11px;font-weight:500;color:var(--tx3);
+  padding:4px 10px;border-radius:var(--r);transition:all var(--t);
+}
 .nav-pill:hover{color:var(--tx);background:var(--s3)}
 .tbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
-.live-chip{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--ok);padding:3px 9px;border-radius:99px;background:var(--ok-d);border:1px solid var(--ok-b);margin-right:2px}
+.live-chip{
+  display:flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:600;color:var(--ok);
+  padding:3px 9px;border-radius:99px;
+  background:var(--ok-d);border:1px solid var(--ok-b);
+}
 .live-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);animation:bpulse 2s ease-in-out infinite}
-@keyframes bpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
-.icon-btn{width:32px;height:32px;border-radius:var(--r);background:transparent;border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;transition:all var(--t);flex-shrink:0;position:relative}
+@keyframes bpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+.icon-btn{
+  width:32px;height:32px;border-radius:var(--r);
+  border:1px solid var(--bd);color:var(--tx2);
+  display:grid;place-items:center;transition:all var(--t);flex-shrink:0;
+}
 .icon-btn:hover{background:var(--s3);border-color:var(--bd2);color:var(--tx)}
 
-/* ── LANGUAGE DROPDOWN ── */
-.lang-btn{width:32px;height:32px;border-radius:var(--r);background:transparent;border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;transition:all var(--t);flex-shrink:0;position:relative;cursor:pointer}
-.lang-btn:hover{background:var(--s3);border-color:var(--bd2);color:var(--tx)}
+/* ─────────────────────────────────────────────
+   LANGUAGE DROPDOWN
+───────────────────────────────────────────── */
+.lang-wrap{position:relative}
+.lang-btn{
+  width:32px;height:32px;border-radius:var(--r);
+  border:1px solid var(--bd);color:var(--tx2);
+  display:grid;place-items:center;transition:all var(--t);flex-shrink:0;cursor:pointer;
+}
+.lang-btn:hover,.lang-btn.open{background:var(--s3);border-color:var(--bd2);color:var(--tx)}
 .lang-dropdown{
   position:absolute;top:calc(100% + 8px);right:0;
   background:var(--sur);border:1px solid var(--bd2);border-radius:var(--r-lg);
-  min-width:180px;overflow:hidden;
-  box-shadow:0 8px 32px rgba(0,0,0,.25);
-  display:none;z-index:400;
-  animation:ddIn .15s var(--ease);
+  min-width:190px;max-height:340px;overflow-y:auto;
+  box-shadow:0 12px 40px rgba(0,0,0,.3);
+  display:none;z-index:500;
 }
-.lang-dropdown.open{display:block}
+.lang-dropdown.open{display:block;animation:ddIn .16s var(--ease)}
 @keyframes ddIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-.lang-dd-hd{padding:8px 12px 6px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);border-bottom:1px solid var(--bd)}
-.lang-option{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;transition:background var(--t);border:none;background:transparent;width:100%;text-align:left;font-family:inherit}
+.lang-dd-hd{
+  padding:8px 14px 6px;font-size:9px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);
+  border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--sur);
+}
+.lang-option{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 14px;width:100%;text-align:left;
+  transition:background var(--t);
+}
 .lang-option:hover{background:var(--s2)}
 .lang-option.active{background:var(--s3)}
-.lang-flag{font-size:16px;line-height:1;flex-shrink:0}
-.lang-info{display:flex;flex-direction:column;gap:1px}
+.lang-flag{font-size:17px;line-height:1;flex-shrink:0}
+.lang-info{display:flex;flex-direction:column;gap:1px;flex:1}
 .lang-name{font-size:12px;font-weight:600;color:var(--tx)}
 .lang-native{font-size:10px;color:var(--tx3)}
-.lang-check{margin-left:auto;color:var(--ok);opacity:0}
+.lang-check{color:var(--ok);opacity:0;flex-shrink:0}
 .lang-option.active .lang-check{opacity:1}
 
-/* ── HERO ── */
-.hero{padding:56px 28px 48px;text-align:center;background:var(--sur);border-bottom:1px solid var(--bd);position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 55% 80% at 50% 0%,rgba(22,163,74,.06),transparent 70%)}
-[data-theme="light"] .hero::before{background:radial-gradient(ellipse 55% 80% at 50% 0%,rgba(22,163,74,.08),transparent 70%)}
-.hero-tag{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--tx3);margin-bottom:20px;padding:5px 12px;border-radius:99px;border:1px solid var(--bd);background:var(--s2)}
+/* ─────────────────────────────────────────────
+   HERO
+───────────────────────────────────────────── */
+.hero{
+  padding:clamp(36px,6vw,72px) clamp(16px,5vw,40px) clamp(32px,5vw,60px);
+  text-align:center;background:var(--sur);border-bottom:1px solid var(--bd);
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 90% at 50% -10%,rgba(22,163,74,.07),transparent 68%);
+}
+[data-theme="light"] .hero::before{background:radial-gradient(ellipse 60% 90% at 50% -10%,rgba(22,163,74,.09),transparent 68%)}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--tx3);margin-bottom:22px;
+  padding:5px 13px;border-radius:99px;border:1px solid var(--bd);background:var(--s2);
+}
 .hero-tag-dot{width:5px;height:5px;border-radius:50%;background:var(--ok)}
-.hero-h1{font-size:clamp(36px,5vw,60px);font-weight:900;line-height:1.02;letter-spacing:-2.5px;color:var(--tx);margin-bottom:16px}
-.hero-h1 em{font-style:italic;font-weight:300;letter-spacing:-1px}
-.hero-p{font-size:15px;color:var(--tx2);line-height:1.7;max-width:440px;margin:0 auto 28px}
-.hero-stats{display:inline-flex;align-items:center;border:1px solid var(--bd);border-radius:var(--r-lg);overflow:hidden;background:var(--s2)}
-.hero-stat{padding:10px 22px;display:flex;flex-direction:column;align-items:center;gap:2px;border-right:1px solid var(--bd)}
+.hero-h1{
+  font-family:'Playfair Display',Georgia,serif;
+  font-size:clamp(34px,6vw,72px);
+  font-weight:900;line-height:1.06;
+  letter-spacing:-1px;color:var(--tx);
+  margin-bottom:18px;
+}
+.hero-h1 .scared{font-style:italic;font-weight:400}
+.hero-h1 .notus{font-weight:900;font-style:normal}
+.hero-p{
+  font-size:clamp(13px,1.6vw,16px);color:var(--tx2);line-height:1.75;
+  max-width:480px;margin:0 auto 30px;
+}
+.hero-stats{
+  display:inline-flex;align-items:center;
+  border:1px solid var(--bd);border-radius:var(--r-lg);overflow:hidden;background:var(--s2);
+  flex-wrap:wrap;
+}
+.hero-stat{
+  padding:10px clamp(14px,2.5vw,24px);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  border-right:1px solid var(--bd);
+}
 .hero-stat:last-child{border-right:none}
-.hero-stat-val{font-size:18px;font-weight:800;color:var(--tx);letter-spacing:-1px;line-height:1}
-.hero-stat-lbl{font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
+.hero-stat-val{font-size:clamp(15px,2vw,20px);font-weight:800;color:var(--tx);letter-spacing:-1px;line-height:1}
+.hero-stat-lbl{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
 
-/* ── FEATURE STRIP ── */
-.feature-strip{background:var(--s2);border-bottom:1px solid var(--bd);padding:12px 28px;display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:wrap}
-.feat-item{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;color:var(--tx3)}
+/* ─────────────────────────────────────────────
+   FEATURE STRIP
+───────────────────────────────────────────── */
+.feature-strip{
+  background:var(--s2);border-bottom:1px solid var(--bd);
+  padding:10px clamp(14px,4vw,40px);
+  display:flex;align-items:center;justify-content:center;gap:clamp(14px,3vw,28px);flex-wrap:wrap;
+}
+.feat-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--tx3)}
 .feat-item svg{color:var(--ok);flex-shrink:0}
 .feat-sep{width:1px;height:14px;background:var(--bd2);flex-shrink:0}
 
-/* ── LAYOUT ── */
-.page{max-width:1260px;margin:0 auto;padding:24px 28px 80px;display:grid;grid-template-columns:390px 1fr;gap:18px;align-items:start}
-.stack{display:flex;flex-direction:column;gap:14px}
-.right-col{display:flex;flex-direction:column;gap:16px}
+/* ─────────────────────────────────────────────
+   PAGE LAYOUT
+───────────────────────────────────────────── */
+.page{
+  max-width:var(--page-max);margin:0 auto;
+  padding:clamp(14px,2.5vw,28px) clamp(12px,4vw,40px) 80px;
+  display:grid;
+  grid-template-columns:clamp(280px,30vw,420px) 1fr;
+  gap:clamp(12px,2vw,20px);
+  align-items:start;
+}
+.left-col{display:flex;flex-direction:column;gap:clamp(10px,1.5vw,14px)}
+.right-col{display:flex;flex-direction:column;gap:clamp(12px,1.5vw,16px)}
 
-/* ── PANEL ── */
+/* ─────────────────────────────────────────────
+   PANEL
+───────────────────────────────────────────── */
 .panel{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
-.panel-hd{padding:13px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.panel-hd{padding:12px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
 .panel-hd-left{display:flex;flex-direction:column;gap:1px}
-.panel-hd-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.panel-hd-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
 .panel-hd-title{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-.15px}
-.panel-body{padding:18px}
-.panel-body-tight{padding:12px 16px}
-.divider{height:1px;background:var(--bd)}
+.panel-body{padding:16px}
+.panel-body-tight{padding:11px 15px}
+.divider{height:1px;background:var(--bd);margin:4px 0}
 
-/* ── PROVIDER TABS ── */
+/* ─────────────────────────────────────────────
+   PROVIDER TABS
+───────────────────────────────────────────── */
 .prov-tabs{display:flex;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--bd)}
-.prov-tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 8px 10px;gap:2px;background:transparent;border:none;border-right:1px solid var(--bd);cursor:pointer;transition:background var(--t);font-family:inherit;position:relative}
+.prov-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:11px 6px 9px;gap:2px;
+  border-right:1px solid var(--bd);cursor:pointer;transition:background var(--t);position:relative;
+}
 .prov-tab:last-child{border-right:none}
 .prov-tab:hover{background:var(--s3)}
 .prov-tab.active{background:var(--s2)}
 .prov-tab-name{font-size:12.5px;font-weight:700;color:var(--tx3);transition:color var(--t);letter-spacing:-.1px}
-.prov-tab-sub{font-size:9px;color:var(--tx3);font-weight:500}
+.prov-tab-sub{font-size:9px;color:var(--tx3);font-weight:500;text-align:center}
 .prov-tab.active .prov-tab-name{color:var(--tx)}
-.prov-tab-bar{position:absolute;bottom:0;left:20%;right:20%;height:2px;border-radius:99px;background:transparent;transition:background var(--t)}
+.prov-tab-bar{position:absolute;bottom:0;left:20%;right:20%;height:2px;border-radius:99px;transition:background var(--t)}
 .prov-tab.active .prov-tab-bar{background:var(--tx)}
 
-/* ── NOTICE / KEY ── */
+/* ─────────────────────────────────────────────
+   NOTICE / KEY
+───────────────────────────────────────────── */
 .notice{max-height:0;overflow:hidden;opacity:0;transition:max-height .35s var(--ease),opacity .25s}
-.notice.open{max-height:120px;opacity:1}
-.notice-inner{margin-top:12px;padding:10px 13px;border-radius:var(--r);background:var(--s3);border:1px solid var(--bd2);font-size:11.5px;color:var(--tx2);line-height:1.6}
+.notice.open{max-height:130px;opacity:1}
+.notice-inner{
+  margin-top:12px;padding:10px 13px;border-radius:var(--r);
+  background:var(--s3);border:1px solid var(--bd2);
+  font-size:11.5px;color:var(--tx2);line-height:1.65;
+}
 .key-section{max-height:0;overflow:hidden;opacity:0;transition:max-height .35s var(--ease),opacity .25s}
-.key-section.open{max-height:130px;opacity:1}
-.key-lbl{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);margin-top:14px;margin-bottom:6px}
+.key-section.open{max-height:140px;opacity:1}
+.key-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-top:14px;margin-bottom:6px}
 .key-wrap{position:relative}
-.key-inp{width:100%;background:var(--s3);border:1px solid var(--bd);border-radius:var(--r);padding:9px 36px 9px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--tx);outline:none;transition:border-color var(--t)}
+.key-inp{
+  width:100%;background:var(--s3);border:1px solid var(--bd);border-radius:var(--r);
+  padding:9px 36px 9px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--tx);outline:none;transition:border-color var(--t);
+}
 .key-inp:focus{border-color:var(--bd2)}
 .key-inp::placeholder{color:var(--tx3)}
-.key-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--tx3);padding:3px;display:grid;place-items:center;transition:color var(--t)}
+.key-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--tx3);padding:3px;display:grid;place-items:center;transition:color var(--t)}
 .key-eye:hover{color:var(--tx)}
 .key-foot{display:flex;justify-content:flex-end;margin-top:7px}
-.key-link{font-size:11px;color:var(--tx2);text-decoration:none;font-weight:500}
+.key-link{font-size:11px;color:var(--tx2);font-weight:500}
 .key-link:hover{color:var(--tx)}
 
-/* ── FORM ── */
+/* ─────────────────────────────────────────────
+   FORM
+───────────────────────────────────────────── */
 .field{display:flex;flex-direction:column;gap:5px}
-.flabel{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);display:flex;align-items:center;justify-content:space-between}
-.lopt{font-size:9.5px;color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0}
-textarea{border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--tx);background:var(--s3);resize:vertical;outline:none;line-height:1.6;transition:border-color var(--t),background var(--t);width:100%}
+.flabel{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:3px}
+.lopt{font-size:9px;color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0}
+.req{color:var(--err);font-weight:700;font-size:11px}
+textarea{
+  border:1px solid var(--bd);border-radius:var(--r);
+  padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;
+  color:var(--tx);background:var(--s3);resize:vertical;outline:none;
+  line-height:1.6;transition:border-color var(--t),background var(--t);width:100%;
+  min-height:72px;
+}
 textarea:focus{border-color:var(--bd2);background:var(--s2)}
 textarea::placeholder{color:var(--tx3)}
-.form-stack{display:flex;flex-direction:column;gap:14px}
+.form-stack{display:flex;flex-direction:column;gap:13px}
 
-/* ── SAMPLES ── */
+/* ─────────────────────────────────────────────
+   SAMPLE BUTTONS
+───────────────────────────────────────────── */
 .samples-wrap{display:flex;gap:6px;flex-wrap:wrap}
-.sample-btn{font-size:11px;font-weight:600;padding:5px 11px;border-radius:var(--r);border:1px solid var(--bd);background:transparent;color:var(--tx2);transition:all var(--t);white-space:nowrap}
+.sample-btn{
+  font-size:11px;font-weight:600;padding:5px 11px;
+  border-radius:var(--r);border:1px solid var(--bd);
+  color:var(--tx2);transition:all var(--t);white-space:nowrap;
+}
 .sample-btn:hover{border-color:var(--bd2);color:var(--tx);background:var(--s3)}
 
-/* ── RUN BUTTON ── */
-.run-btn{width:100%;padding:14px 20px;background:var(--tx);border:none;border-radius:var(--r-md);color:var(--bg);font-size:14px;font-weight:700;letter-spacing:-.3px;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Inter',sans-serif}
+/* ─────────────────────────────────────────────
+   RUN BUTTON
+───────────────────────────────────────────── */
+.run-btn{
+  width:100%;padding:14px 20px;
+  background:var(--tx);border:none;border-radius:var(--r-md);
+  color:var(--bg);font-size:14px;font-weight:700;letter-spacing:-.3px;
+  transition:all var(--t);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
 .run-btn:hover:not(:disabled){opacity:.85;transform:translateY(-1px)}
 .run-btn:active:not(:disabled){transform:none;opacity:.9}
 .run-btn:disabled{opacity:.2;cursor:not-allowed;transform:none}
-.kbd{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 5px;border:1px solid rgba(0,0,0,.18);border-radius:3px;opacity:.55}
+.kbd{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:1px 5px;border:1px solid rgba(0,0,0,.18);border-radius:3px;opacity:.55;
+}
 [data-theme="dark"] .kbd{border-color:rgba(255,255,255,.18)}
 
-/* ── ERROR BAR ── */
-.err-bar{display:none;border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--err);background:var(--err-d);border:1px solid var(--err-b);align-items:center;gap:8px}
+/* ─────────────────────────────────────────────
+   ERROR BAR
+───────────────────────────────────────────── */
+.err-bar{
+  display:none;border-radius:var(--r);padding:10px 14px;
+  font-size:12px;color:var(--err);background:var(--err-d);
+  border:1px solid var(--err-b);align-items:center;gap:8px;
+}
 .err-bar.show{display:flex;animation:slideDown .18s ease}
 @keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 
-/* ── EMPTY STATE ── */
-.empty-state{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);padding:52px 32px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--sh)}
-.empty-grid{position:absolute;inset:0;opacity:.04;background-image:linear-gradient(var(--tx) 1px,transparent 1px),linear-gradient(90deg,var(--tx) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
-.empty-ico{width:56px;height:56px;margin:0 auto 18px;background:var(--s3);border:1px solid var(--bd2);border-radius:var(--r-lg);display:grid;place-items:center;color:var(--tx3)}
+/* ─────────────────────────────────────────────
+   EMPTY STATE
+───────────────────────────────────────────── */
+.empty-state{
+  background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);
+  padding:clamp(36px,5vw,60px) clamp(20px,4vw,40px);
+  text-align:center;position:relative;overflow:hidden;box-shadow:var(--sh);
+}
+.empty-grid{
+  position:absolute;inset:0;opacity:.035;
+  background-image:linear-gradient(var(--tx) 1px,transparent 1px),linear-gradient(90deg,var(--tx) 1px,transparent 1px);
+  background-size:32px 32px;pointer-events:none;
+}
+.empty-ico{width:52px;height:52px;margin:0 auto 16px;background:var(--s3);border:1px solid var(--bd2);border-radius:var(--r-lg);display:grid;place-items:center;color:var(--tx3)}
 .empty-h{font-size:16px;font-weight:700;color:var(--tx);margin-bottom:8px;letter-spacing:-.3px}
-.empty-p{font-size:13px;color:var(--tx2);line-height:1.7;max-width:260px;margin:0 auto 20px}
-.empty-hints{display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto}
-.empty-hint-row{display:flex;align-items:center;gap:10px;text-align:left;padding:9px 12px;border-radius:var(--r-md);background:var(--s2);border:1px solid var(--bd)}
-.empty-hint-num{width:20px;height:20px;border-radius:50%;background:var(--s4);border:1px solid var(--bd2);display:grid;place-items:center;font-size:9px;font-weight:700;color:var(--tx3);flex-shrink:0;font-family:'JetBrains Mono',monospace}
-.empty-hint-text{font-size:11.5px;color:var(--tx2);line-height:1.4}
+.empty-p{font-size:13px;color:var(--tx2);line-height:1.7;max-width:280px;margin:0 auto 20px}
+.empty-hints{display:flex;flex-direction:column;gap:8px;max-width:300px;margin:0 auto}
+.empty-hint-row{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:9px 12px;border-radius:var(--r-md);background:var(--s2);border:1px solid var(--bd)}
+.empty-hint-num{width:20px;height:20px;border-radius:50%;background:var(--s4);border:1px solid var(--bd2);display:grid;place-items:center;font-size:9px;font-weight:700;color:var(--tx3);flex-shrink:0;font-family:'JetBrains Mono',monospace;margin-top:1px}
+.empty-hint-text{font-size:11.5px;color:var(--tx2);line-height:1.5}
 
-/* ── RESULT CARD ── */
+/* ─────────────────────────────────────────────
+   RESULT
+───────────────────────────────────────────── */
 #result{display:none}
 .verdict-card{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
-.verdict-top{padding:22px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:18px;position:relative}
+.verdict-top{padding:clamp(16px,3vw,24px);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:clamp(12px,2vw,20px);position:relative;flex-wrap:nowrap}
 .v-status-bar{position:absolute;top:0;left:0;right:0;height:3px}
 .v-status-bar.hall{background:var(--err)}
 .v-status-bar.clean{background:var(--ok)}
@@ -191,105 +356,139 @@ textarea::placeholder{color:var(--tx3)}
 .v-icon.hall{color:var(--err);background:var(--err-d);border-color:var(--err-b)}
 .v-icon.clean{color:var(--ok);background:var(--ok-d);border-color:var(--ok-b)}
 .v-center{flex:1;min-width:0}
-.v-label{font-size:19px;font-weight:800;line-height:1.1;letter-spacing:-.6px}
+.v-label{font-size:clamp(15px,2.5vw,20px);font-weight:800;line-height:1.1;letter-spacing:-.5px}
 .v-label.hall{color:var(--err)}
 .v-label.clean{color:var(--ok)}
 .v-sub{font-size:12px;color:var(--tx2);margin-top:4px;line-height:1.45}
-.conf-ring{position:relative;width:74px;height:74px;flex-shrink:0}
-.conf-ring svg{width:74px;height:74px;transform:rotate(-90deg)}
-.conf-track{fill:none;stroke:var(--s4);stroke-width:5.5}
-.conf-fill{fill:none;stroke-width:5.5;stroke-linecap:round;transition:stroke-dashoffset .85s cubic-bezier(.4,0,.2,1),stroke .3s}
-.conf-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.conf-num{font-size:17px;font-weight:800;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+
+/* ── CONFIDENCE RING ── */
+.conf-ring{position:relative;width:96px;height:96px;flex-shrink:0}
+.conf-ring svg{width:96px;height:96px;transform:rotate(-90deg)}
+.conf-track{fill:none;stroke:var(--s4);stroke-width:7}
+.conf-fill{fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.4,0,.2,1),stroke .3s}
+.conf-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.conf-num{
+  font-family:'DM Serif Display','Playfair Display',Georgia,serif;
+  font-size:24px;font-weight:700;line-height:1;
+  letter-spacing:-2px;font-variant-numeric:tabular-nums;
+  font-style:italic;
+}
 .conf-num.hall{color:var(--err)}
 .conf-num.clean{color:var(--ok)}
-.conf-lbl{font-family:'JetBrains Mono',monospace;font-size:6px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);margin-top:2px}
+.conf-lbl{
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:6.5px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tx3);
+  text-align:center;line-height:1.3;
+  white-space:nowrap;
+  word-break:keep-all;
+}
 
-/* ── TYPE ROW ── */
-.type-row{padding:14px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;gap:12px}
+/* ── TYPE / DETAIL / CORRECT ── */
+.type-row{padding:13px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;gap:12px}
 .type-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;flex-shrink:0;margin-top:2px;background:var(--s3);border:1px solid var(--bd2);color:var(--tx2)}
 .type-name{font-size:13px;font-weight:700;color:var(--tx);letter-spacing:-.15px}
 .type-def{font-size:11.5px;color:var(--tx2);margin-top:3px;line-height:1.55}
-
-/* ── DETAIL ── */
-.detail{padding:14px 24px;border-bottom:1px solid var(--bd)}
+.detail{padding:13px 22px;border-bottom:1px solid var(--bd)}
 .detail:last-child{border-bottom:none}
 .detail-lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px;display:flex;align-items:center;gap:5px}
 .detail-body{font-size:13px;color:var(--tx2);line-height:1.75}
 .elem-chips{display:flex;flex-wrap:wrap;gap:5px}
 .elem-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:4px;background:var(--err-d);color:var(--err);border:1px solid var(--err-b);font-family:'JetBrains Mono',monospace}
-.correct-box{background:var(--ok-d);border:1px solid var(--ok-b);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--ok);line-height:1.7;font-weight:500}
-.verdict-foot{padding:10px 24px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bd)}
-.prov-foot{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:500;color:var(--tx3)}
+.correct-box{background:var(--ok-d);border:1px solid var(--ok-b);border-radius:var(--r);padding:14px 16px;font-size:13.5px;color:var(--ok);line-height:1.75;font-weight:500}
+.correct-box-web{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);opacity:.7;margin-top:10px;display:flex;align-items:center;gap:4px}
+.verdict-foot{padding:9px 22px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bd)}
+.prov-foot{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:500;color:var(--tx3)}
 .prov-foot-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);flex-shrink:0}
 .vf-time{margin-left:auto;font-size:10px;color:var(--tx3);font-family:'JetBrains Mono',monospace}
 
-/* ── WEB CONTEXT PANEL (structured) ── */
+/* ─────────────────────────────────────────────
+   WEB CONTEXT PANEL
+───────────────────────────────────────────── */
 .wc-panel{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
-.wc-hd{padding:12px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.wc-hd{padding:11px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
 .wc-hd-left{display:flex;align-items:center;gap:8px}
 .wc-hd-icon{color:var(--tx3)}
-.wc-hd-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
-.wc-auto-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:3px;border:1px solid var(--bd2);color:var(--tx3);text-transform:uppercase}
-.wc-title{font-size:15px;font-weight:700;color:var(--tx);letter-spacing:-.3px;padding:14px 18px 0}
-.wc-summary{font-size:13px;color:var(--tx2);line-height:1.75;padding:10px 18px 14px;border-bottom:1px solid var(--bd)}
+.wc-hd-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
+.wc-auto-tag{font-size:8px;font-weight:700;letter-spacing:.1em;padding:2px 7px;border-radius:3px;background:var(--ok-d);border:1px solid var(--ok-b);color:var(--ok)}
+.wc-hd-right{font-size:10.5px;font-weight:500;color:var(--tx3)}
+.wc-title{font-size:15px;font-weight:700;color:var(--tx);letter-spacing:-.3px;padding:16px 18px 4px;line-height:1.4}
+.wc-summary{font-size:13px;color:var(--tx2);line-height:1.85;padding:10px 18px 16px;border-bottom:1px solid var(--bd)}
+.wc-summary p{margin-bottom:8px}.wc-summary p:last-child{margin-bottom:0}
 .wc-facts{display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--bd)}
-.wc-fact{padding:9px 18px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+.wc-fact{padding:12px 18px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd)}
 .wc-fact:nth-child(even){border-right:none}
 .wc-fact:nth-last-child(-n+2){border-bottom:none}
-.wc-fact-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:3px}
-.wc-fact-value{font-size:12px;font-weight:500;color:var(--tx);line-height:1.4}
-.wc-sources{padding:10px 18px;display:flex;flex-wrap:wrap;gap:5px}
-.wc-src{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:3px 9px;border-radius:4px;background:var(--s3);border:1px solid var(--bd);color:var(--tx2);text-decoration:none;transition:all var(--t);max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.wc-src:hover{border-color:var(--bd2);color:var(--tx)}
-
-/* ── CODE CARD ── */
+.wc-fact-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:4px}
+.wc-fact-value{font-size:13px;font-weight:600;color:var(--tx);line-height:1.45}
+.wc-sources{padding:11px 18px;display:flex;flex-wrap:wrap;gap:6px}
+.wc-src{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:5px 11px;border-radius:6px;background:var(--s2);border:1px solid var(--bd);color:var(--tx2);transition:all var(--t);max-width:240px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.wc-src:hover{border-color:var(--bd2);color:var(--tx);background:var(--s3)}
+.wc-correct-banner{
+  margin:14px 18px;padding:14px 16px;
+  background:var(--ok-d);border:1px solid var(--ok-b);
+  border-radius:var(--r-md);
+}
+.wc-correct-banner-hd{
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ok);margin-bottom:8px;display:flex;align-items:center;gap:5px;
+}
+.wc-correct-banner-body{
+  font-size:13.5px;color:var(--ok);line-height:1.75;font-weight:600;
+}
+/* ─────────────────────────────────────────────
+   CODE CARD
+───────────────────────────────────────────── */
 .code-card{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
-.code-hd{padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.code-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.code-hd{padding:9px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.code-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
 .code-tabs{display:flex;gap:2px}
-.code-tab{font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid transparent;background:none;color:var(--tx3);transition:all var(--t);font-family:'Inter',sans-serif;font-weight:500}
+.code-tab{font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid transparent;color:var(--tx3);transition:all var(--t);font-weight:500}
 .code-tab.active{background:var(--s3);color:var(--tx);border-color:var(--bd2)}
-.copy-btn{font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:5px;background:transparent;border:1px solid var(--bd);color:var(--tx3);transition:all var(--t)}
+.copy-btn{font-size:10px;font-weight:600;padding:3px 10px;border-radius:5px;border:1px solid var(--bd);color:var(--tx3);transition:all var(--t)}
 .copy-btn:hover{border-color:var(--bd2);color:var(--tx)}
 .code-body{padding:14px;overflow-x:auto;background:var(--bg)}
-pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);line-height:1.85;white-space:pre}
+pre{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx2);line-height:1.85;white-space:pre}
 .t-key{color:var(--tx)}.t-str{color:var(--tx2)}.t-num{color:var(--tx)}.t-bool-t{color:var(--ok)}.t-bool-f{color:var(--err)}.t-curl{color:var(--tx)}.t-flag{color:var(--tx3)}.t-url{color:var(--tx2)}
 
-/* ── TAXONOMY ── */
+/* ─────────────────────────────────────────────
+   TAXONOMY
+───────────────────────────────────────────── */
 .tax-panel{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh)}
-.tax-hd{padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.tax-hd{padding:13px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
 .tax-hd-left{display:flex;flex-direction:column;gap:1px}
-.tax-hd-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.tax-hd-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
 .tax-hd-title{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-.15px}
-.tax-row{display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background var(--t);user-select:none;position:relative}
+.tax-row{display:flex;align-items:center;gap:13px;padding:12px 18px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background var(--t);user-select:none;-webkit-tap-highlight-color:transparent}
 .tax-row:last-child{border-bottom:none}
 .tax-row:hover{background:var(--s2)}
-.tax-row:hover .tax-arrow{opacity:1;transform:translateX(0)}
 .tax-row:hover .tax-num{background:var(--tx);color:var(--bg);border-color:transparent}
+.tax-row:hover .tax-arrow{opacity:1;transform:translateX(0)}
 .tax-num{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-size:11px;font-weight:700;background:var(--s3);border:1px solid var(--bd2);color:var(--tx2);transition:all var(--t)}
-.tax-text{flex:1}
+.tax-text{flex:1;min-width:0}
 .tax-name{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-.1px}
 .tax-desc{font-size:11px;color:var(--tx3);margin-top:2px;line-height:1.4}
-.tax-arrow{display:flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--tx3);opacity:0;transform:translateX(-5px);transition:all var(--t);flex-shrink:0}
+.tax-arrow{display:flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--tx3);opacity:0;transform:translateX(-6px);transition:all var(--t);flex-shrink:0}
 
-/* ── MODAL ── */
+/* ─────────────────────────────────────────────
+   MODAL
+───────────────────────────────────────────── */
 .modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeOv .18s ease}
 .modal-overlay.closing{animation:fadeOvOut .18s ease forwards}
 @keyframes fadeOv{from{opacity:0}to{opacity:1}}
 @keyframes fadeOvOut{from{opacity:1}to{opacity:0}}
-.modal{background:var(--sur);border:1px solid var(--bd2);border-radius:var(--r-xl);width:100%;max-width:500px;overflow:hidden;max-height:92vh;overflow-y:auto;animation:mIn .22s var(--ease)}
+.modal{background:var(--sur);border:1px solid var(--bd2);border-radius:var(--r-xl);width:100%;max-width:520px;overflow:hidden;max-height:90vh;overflow-y:auto;animation:mIn .22s var(--ease)}
 .modal.closing{animation:mOut .18s var(--ease) forwards}
 @keyframes mIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes mOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(6px) scale(.99)}}
-.modal-hd{padding:18px 20px 15px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;gap:12px;position:sticky;top:0;background:var(--sur);z-index:1}
+.modal-hd{padding:18px 20px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;gap:12px;position:sticky;top:0;background:var(--sur);z-index:1}
 .modal-num-tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;background:var(--s3);border:1px solid var(--bd2);color:var(--tx3);display:inline-block;margin-bottom:5px}
 .modal-htitle{font-size:16px;font-weight:700;color:var(--tx);letter-spacing:-.3px}
 .modal-close{margin-left:auto;width:28px;height:28px;border-radius:var(--r);background:var(--s3);border:1px solid var(--bd);color:var(--tx3);display:grid;place-items:center;transition:all var(--t);flex-shrink:0}
 .modal-close:hover{background:var(--s4);color:var(--tx)}
-.modal-body{padding:18px 20px 22px;display:flex;flex-direction:column;gap:14px}
+.modal-body{padding:18px 20px 24px;display:flex;flex-direction:column;gap:14px}
 .modal-def{font-size:13.5px;color:var(--tx2);line-height:1.75}
-.modal-sec-title{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:7px}
+.modal-sec-title{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);margin-bottom:7px}
 .modal-example-box{background:var(--s3);border:1px solid var(--bd);border-radius:var(--r);padding:13px 14px;display:flex;flex-direction:column;gap:10px}
 .ex-item{display:flex;flex-direction:column;gap:3px}
 .ex-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
@@ -299,46 +498,155 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
 .modal-tags{display:flex;flex-wrap:wrap;gap:5px}
 .modal-tag{font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;border:1px solid var(--bd);background:var(--s3);color:var(--tx2)}
 
-/* ── UTILS ── */
+/* ─────────────────────────────────────────────
+   SPINNER / UTILS
+───────────────────────────────────────────── */
 .spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.12);border-top-color:var(--bg);animation:spin .6s linear infinite;flex-shrink:0}
 [data-theme="dark"] .spinner{border-color:rgba(255,255,255,.12);border-top-color:var(--bg)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .fade-in{animation:fadeIn .3s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .searching-dots span{animation:blink 1.4s infinite both}
 .searching-dots span:nth-child(2){animation-delay:.2s}
 .searching-dots span:nth-child(3){animation-delay:.4s}
 @keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
 
-/* ── RESPONSIVE ── */
-@media(min-width:1280px){.page{grid-template-columns:410px 1fr;padding:26px 40px 80px}.topbar{padding:0 40px}.hero{padding:64px 40px 52px}.feature-strip{padding:12px 40px}}
-@media(max-width:1280px){.page{grid-template-columns:360px 1fr;gap:16px}}
-@media(max-width:1024px){.page{grid-template-columns:1fr 1fr;padding:16px 20px 60px}.hero{padding:44px 24px 38px}}
-@media(max-width:768px){:root{--topbar-h:50px}.topbar{padding:0 16px}.nav-pills,.nav-sep{display:none}.page{grid-template-columns:1fr;padding:14px 16px 56px}.right-col{order:-1}.hero{padding:36px 20px 30px}.hero-stats{flex-wrap:wrap}.feature-strip{gap:16px;padding:10px 16px}.feat-sep{display:none}}
-@media(max-width:480px){.topbar{padding:0 14px;gap:8px}.hero{padding:28px 16px 24px}.page{padding:12px 12px 44px}.verdict-top{padding:16px 18px;gap:12px}.detail{padding:12px 18px}.type-row{padding:12px 18px}.verdict-foot{padding:9px 18px}.panel-body{padding:14px}.wc-facts{grid-template-columns:1fr}.wc-fact{border-right:none}.wc-fact:nth-last-child(-n+2){border-bottom:1px solid var(--bd)}.wc-fact:last-child{border-bottom:none}}
+/* ─────────────────────────────────────────────
+   RESPONSIVE — Tablet 1024px
+───────────────────────────────────────────── */
+@media(max-width:1024px){
+  .page{grid-template-columns:1fr 1fr;gap:14px;padding:16px 20px 60px}
+  .nav-pills,.nav-sep{display:none}
+  .conf-ring{width:88px;height:88px}
+  .conf-ring svg{width:88px;height:88px}
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE — Mobile 768px  (single col)
+───────────────────────────────────────────── */
+@media(max-width:768px){
+  :root{--topbar-h:52px}
+  .topbar{padding:0 14px;gap:8px}
+  .logo-ver{display:none}
+  .live-chip{display:none}
+  .page{grid-template-columns:1fr;padding:12px 14px 56px;gap:12px}
+  .hero{padding:32px 16px 28px}
+  .hero-stats{width:100%;justify-content:center}
+  .hero-stat{flex:1;min-width:80px}
+  .feature-strip{gap:12px;padding:10px 14px;flex-wrap:wrap}
+  .feat-sep{display:none}
+  .verdict-top{flex-wrap:nowrap;gap:12px}
+  .conf-ring{width:80px;height:80px}
+  .conf-ring svg{width:80px;height:80px}
+  .conf-num{font-size:18px}
+  .v-label{font-size:16px}
+  .wc-facts{grid-template-columns:1fr 1fr}
+  .wc-fact{border-bottom:1px solid var(--bd)!important}
+  .wc-fact:nth-child(odd){border-right:1px solid var(--bd)!important}
+  .wc-fact:nth-child(even){border-right:none!important}
+  .wc-fact:last-child{border-bottom:none!important}
+  .wc-fact:nth-last-child(2):nth-child(odd){border-bottom:none!important}
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE — Small mobile 600px
+───────────────────────────────────────────── */
+@media(max-width:600px){
+  .page{padding:10px 12px 50px;gap:10px}
+  .verdict-top{padding:14px 16px 14px}
+  .conf-ring{width:72px;height:72px}
+  .conf-ring svg{width:72px;height:72px}
+  .conf-num{font-size:16px}
+  .conf-lbl{font-size:5.5px;letter-spacing:.1em}
+  .wc-facts{grid-template-columns:1fr}
+  .wc-fact{border-right:none!important;border-bottom:1px solid var(--bd)!important}
+  .wc-fact:last-child{border-bottom:none!important}
+  .wc-hd{flex-direction:column;align-items:flex-start;gap:6px}
+  .code-hd{flex-direction:column;align-items:flex-start;gap:8px}
+  .hero-stats{flex-wrap:wrap}
+  .hero-stat{min-width:calc(50% - 1px);border-right:none;border-bottom:1px solid var(--bd);padding:10px 14px}
+  .hero-stat:nth-child(odd){border-right:1px solid var(--bd)}
+  .hero-stat:last-child{border-bottom:none}
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE — Small mobile 480px
+───────────────────────────────────────────── */
+@media(max-width:480px){
+  :root{--topbar-h:50px}
+  .topbar{padding:0 12px;gap:6px}
+  .hero{padding:24px 14px 22px}
+  .hero-h1{font-size:clamp(26px,8vw,38px);letter-spacing:-.5px}
+  .verdict-top{padding:12px 14px;gap:10px}
+  .v-icon{width:40px;height:40px}
+  .v-label{font-size:15px}
+  .detail{padding:11px 14px}
+  .type-row{padding:11px 14px}
+  .verdict-foot{padding:8px 14px;flex-wrap:wrap;gap:4px}
+  .panel-body{padding:12px}
+  .panel-body-tight{padding:9px 12px}
+  .conf-ring{width:66px;height:66px}
+  .conf-ring svg{width:66px;height:66px}
+  .conf-num{font-size:14px;letter-spacing:-1px}
+  .conf-lbl{font-size:5px;letter-spacing:.08em}
+  .empty-state{padding:28px 14px}
+  .tax-row{padding:10px 14px;gap:10px}
+  .prov-tab{padding:9px 4px 8px}
+  .prov-tab-name{font-size:11px}
+  .prov-tab-sub{font-size:8px}
+  .samples-wrap{gap:5px}
+  .sample-btn{font-size:10.5px;padding:5px 9px}
+  .lang-dropdown{right:-4px;min-width:170px}
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE — Very small 360px
+───────────────────────────────────────────── */
+@media(max-width:360px){
+  .hero-h1{font-size:26px}
+  .hero-stat{min-width:100%;border-right:none!important}
+  .prov-tab-sub{display:none}
+  .conf-ring{width:60px;height:60px}
+  .conf-ring svg{width:60px;height:60px}
+  .conf-num{font-size:13px}
+  .tbar-right{gap:4px}
+  .icon-btn,.lang-btn{width:28px;height:28px}
+}
 </style>
 </head>
 <body>
 
+<!-- ═══════════════════════════════════════════
+     TOPBAR
+═══════════════════════════════════════════ -->
 <header class="topbar">
   <a class="logo" href="/">
-    <div class="logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
-    <span class="logo-name">Truthy</span><span class="logo-ver">v7.0</span>
+    <div class="logo-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+      </svg>
+    </div>
+    <span class="logo-name">Truthy</span>
+    <span class="logo-ver">v7.0</span>
   </a>
   <div class="nav-sep"></div>
   <nav class="nav-pills">
-    <a class="nav-pill" href="https://github.com/UtsavOpal/truthy">GitHub</a>
+    <a class="nav-pill" href="/docs" target="_blank" data-i18n="nav.api">API Docs</a>
+    <a class="nav-pill" href="#" data-i18n="nav.github">GitHub</a>
   </nav>
   <div class="tbar-right">
-    <div class="live-chip"><span class="live-dot"></span>Live</div>
+    <div class="live-chip"><span class="live-dot"></span><span data-i18n="nav.live">Live</span></div>
 
-    <!-- Language Button -->
-    <div style="position:relative">
-      <button class="lang-btn" id="langBtn" onclick="toggleLangDropdown()" title="Change language">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    <!-- Language Picker -->
+    <div class="lang-wrap">
+      <button class="lang-btn" id="langBtn" onclick="toggleLangDropdown()" title="Change language" aria-haspopup="listbox">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
       </button>
-      <div class="lang-dropdown" id="langDropdown">
-        <div class="lang-dd-hd">Interface Language</div>
+      <div class="lang-dropdown" id="langDropdown" role="listbox">
+        <div class="lang-dd-hd" data-i18n="lang.select">Select Language</div>
         <button class="lang-option active" data-lang="English" onclick="setLanguage('English',this)">
           <span class="lang-flag">🇬🇧</span>
           <div class="lang-info"><span class="lang-name">English</span><span class="lang-native">English</span></div>
@@ -399,10 +707,25 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
           <div class="lang-info"><span class="lang-name">Russian</span><span class="lang-native">Русский</span></div>
           <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         </button>
+        <button class="lang-option" data-lang="Bengali" onclick="setLanguage('Bengali',this)">
+          <span class="lang-flag">🇧🇩</span>
+          <div class="lang-info"><span class="lang-name">Bengali</span><span class="lang-native">বাংলা</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Korean" onclick="setLanguage('Korean',this)">
+          <span class="lang-flag">🇰🇷</span>
+          <div class="lang-info"><span class="lang-name">Korean</span><span class="lang-native">한국어</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="lang-option" data-lang="Italian" onclick="setLanguage('Italian',this)">
+          <span class="lang-flag">🇮🇹</span>
+          <div class="lang-info"><span class="lang-name">Italian</span><span class="lang-native">Italiano</span></div>
+          <svg class="lang-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
       </div>
     </div>
 
-    <!-- Theme Button -->
+    <!-- Theme Toggle -->
     <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
       <svg id="ico-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       <svg id="ico-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -410,88 +733,141 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
   </div>
 </header>
 
+<!-- ═══════════════════════════════════════════
+     HERO
+═══════════════════════════════════════════ -->
 <section class="hero">
-  <div class="hero-tag"><span class="hero-tag-dot"></span>Because Facts Matter</div>
-  <h1 class="hero-h1">Scared of Hallucinations?<em>We're not.</em></h1>
-  <p class="hero-p">Structured hallucination analysis across 4 taxonomy types. Free with Groq AI, or unlock higher accuracy with your own key.</p>
+  <div class="hero-tag"><span class="hero-tag-dot"></span><span data-i18n="hero.tag">AI Hallucination Detection Engine</span></div>
+  <h1 class="hero-h1">
+    <span class="scared" data-i18n="hero.h1a">Scared of Hallucinations?</span><br>
+    <span class="notus" data-i18n="hero.h1b">We're not.</span>
+  </h1>
+  <p class="hero-p" data-i18n="hero.p">Structured hallucination analysis across 4 taxonomy types. Free with Groq AI, or unlock higher accuracy with your own key.</p>
   <div class="hero-stats">
-    <div class="hero-stat"><span class="hero-stat-val">4</span><span class="hero-stat-lbl">Error Types</span></div>
-    <div class="hero-stat"><span class="hero-stat-val">3</span><span class="hero-stat-lbl">Providers</span></div>
-    <div class="hero-stat"><span class="hero-stat-val">12</span><span class="hero-stat-lbl">Languages</span></div>
-    <div class="hero-stat"><span class="hero-stat-val">Groq</span><span class="hero-stat-lbl">Free Engine</span></div>
+    <div class="hero-stat"><span class="hero-stat-val">4</span><span class="hero-stat-lbl" data-i18n="hero.stat1">Error Types</span></div>
+    <div class="hero-stat"><span class="hero-stat-val">3</span><span class="hero-stat-lbl" data-i18n="hero.stat2">Providers</span></div>
+    <div class="hero-stat"><span class="hero-stat-val">15</span><span class="hero-stat-lbl" data-i18n="hero.stat3">Languages</span></div>
+    <div class="hero-stat"><span class="hero-stat-val">Groq</span><span class="hero-stat-lbl" data-i18n="hero.stat4">Free Engine</span></div>
   </div>
 </section>
 
+<!-- ═══════════════════════════════════════════
+     FEATURE STRIP
+═══════════════════════════════════════════ -->
 <div class="feature-strip">
-  <div class="feat-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Auto web search — real-time context</div>
+  <div class="feat-item">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <span data-i18n="feat.1">Auto web search — real-time context</span>
+  </div>
   <div class="feat-sep"></div>
-  <div class="feat-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Correct answer from web when hallucinated</div>
+  <div class="feat-item">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <span data-i18n="feat.2">Correct answer from web when hallucinated</span>
+  </div>
   <div class="feat-sep"></div>
-  <div class="feat-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/></svg>12 languages supported</div>
+  <div class="feat-item">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10"/></svg>
+    <span data-i18n="feat.3">12 languages supported</span>
+  </div>
   <div class="feat-sep"></div>
-  <div class="feat-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Keys never stored</div>
+  <div class="feat-item">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <span data-i18n="feat.4">Keys never stored</span>
+  </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     PAGE GRID
+═══════════════════════════════════════════ -->
 <div class="page">
-  <div class="stack">
 
+  <!-- LEFT COL -->
+  <div class="left-col">
+
+    <!-- Provider -->
     <div class="panel">
       <div class="panel-hd">
-        <div class="panel-hd-left"><div class="panel-hd-label">Step 1</div><div class="panel-hd-title">Choose Detection Engine</div></div>
+        <div class="panel-hd-left">
+          <div class="panel-hd-label" data-i18n="panel.step1">Step 1</div>
+          <div class="panel-hd-title" data-i18n="panel.engine">Choose Detection Engine</div>
+        </div>
       </div>
       <div class="panel-body">
         <div class="prov-tabs">
           <button class="prov-tab active" id="mode-free" onclick="setMode('free')">
-            <span class="prov-tab-name">Free</span><span class="prov-tab-sub">Groq · Llama 3.1</span><span class="prov-tab-bar"></span>
+            <span class="prov-tab-name" data-i18n="prov.free">Free</span>
+            <span class="prov-tab-sub">Groq · Llama 3.1</span>
+            <span class="prov-tab-bar"></span>
           </button>
           <button class="prov-tab" id="mode-openai" onclick="setMode('openai')">
-            <span class="prov-tab-name">GPT-4o</span><span class="prov-tab-sub">OpenAI</span><span class="prov-tab-bar"></span>
+            <span class="prov-tab-name">GPT-4o</span>
+            <span class="prov-tab-sub">OpenAI</span>
+            <span class="prov-tab-bar"></span>
           </button>
           <button class="prov-tab" id="mode-gemini" onclick="setMode('gemini')">
-            <span class="prov-tab-name">Gemini</span><span class="prov-tab-sub">Google</span><span class="prov-tab-bar"></span>
+            <span class="prov-tab-name">Gemini</span>
+            <span class="prov-tab-sub">Google</span>
+            <span class="prov-tab-bar"></span>
           </button>
         </div>
         <div class="notice open" id="free-notice">
-          <div class="notice-inner">Free mode uses <strong>Groq · Llama 3.1 8B</strong> — a powerful open-source LLM. No API key needed. For maximum accuracy switch to GPT-4o or Gemini.</div>
+          <div class="notice-inner" data-i18n="notice.free">Free mode uses <strong>Groq · Llama 3.1 8B</strong> — a powerful open-source LLM. No API key needed from you. Switch to GPT-4o or Gemini for maximum accuracy.</div>
         </div>
         <div class="key-section" id="key-section">
-          <div class="key-lbl">API Key</div>
+          <div class="key-lbl" data-i18n="key.label">API Key</div>
           <div class="key-wrap">
-            <input class="key-inp" id="apiKey" type="password" placeholder="sk-…" autocomplete="off"/>
+            <input class="key-inp" id="apiKey" type="password" autocomplete="off" data-i18n-placeholder="key.placeholder" placeholder="sk-…"/>
             <button class="key-eye" onclick="toggleKey()" type="button">
               <svg id="eye-open" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg id="eye-closed" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             </button>
           </div>
-          <div class="key-foot"><a class="key-link" id="key-link" href="#" target="_blank">Get API key →</a></div>
+          <div class="key-foot"><a class="key-link" id="key-link" href="#" target="_blank" data-i18n="key.get">Get API key →</a></div>
         </div>
       </div>
     </div>
 
+    <!-- Inputs -->
     <div class="panel">
       <div class="panel-hd">
-        <div class="panel-hd-left"><div class="panel-hd-label">Step 2</div><div class="panel-hd-title">Provide Context &amp; Answer</div></div>
+        <div class="panel-hd-left">
+          <div class="panel-hd-label" data-i18n="panel.step2">Step 2</div>
+          <div class="panel-hd-title" data-i18n="panel.inputs">Provide Context &amp; Answer</div>
+        </div>
       </div>
       <div class="panel-body form-stack">
         <div class="field">
-          <div class="flabel">Context Paragraph <span class="lopt">optional — auto web search if blank</span></div>
-          <textarea id="paragraph" rows="3" placeholder="Paste reference context, or leave blank to auto-search the web…"></textarea>
+          <div class="flabel">
+            <span data-i18n="field.context">Context Paragraph</span>
+            <span class="lopt" data-i18n="field.contextHint">optional — auto web search if blank</span>
+          </div>
+          <textarea id="paragraph" rows="3" data-i18n-placeholder="field.contextPh" placeholder="Paste reference context, or leave blank to auto-search the web…"></textarea>
         </div>
         <div class="divider"></div>
         <div class="field">
-          <div class="flabel">Question <span style="color:var(--err);font-weight:700">*</span></div>
-          <textarea id="question" rows="2" placeholder="The question posed to the LLM…"></textarea>
+          <div class="flabel">
+            <span data-i18n="field.question">Question</span>
+            <span class="req">*</span>
+          </div>
+          <textarea id="question" rows="2" data-i18n-placeholder="field.questionPh" placeholder="The question posed to the LLM…"></textarea>
         </div>
         <div class="field">
-          <div class="flabel">Model's Answer <span style="color:var(--err);font-weight:700">*</span></div>
-          <textarea id="answer" rows="3" placeholder="The LLM output to fact-check…"></textarea>
+          <div class="flabel">
+            <span data-i18n="field.answer">Model's Answer</span>
+            <span class="req">*</span>
+          </div>
+          <textarea id="answer" rows="3" data-i18n-placeholder="field.answerPh" placeholder="The LLM output to fact-check…"></textarea>
         </div>
       </div>
     </div>
 
+    <!-- Samples -->
     <div class="panel">
       <div class="panel-hd">
-        <div class="panel-hd-left"><div class="panel-hd-label">Quick Start</div><div class="panel-hd-title">Load a Test Case</div></div>
+        <div class="panel-hd-left">
+          <div class="panel-hd-label" data-i18n="panel.quick">Quick Start</div>
+          <div class="panel-hd-title" data-i18n="panel.test">Load a Test Case</div>
+        </div>
       </div>
       <div class="panel-body-tight">
         <div class="samples-wrap">
@@ -512,27 +888,32 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
     <button class="run-btn" id="runBtn" onclick="runDetection()">
       <span id="runContent" style="display:flex;align-items:center;gap:8px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-        Verify Now <span class="kbd"></span>
+        <span data-i18n="btn.verify">Verify Now</span> <span class="kbd">⌘↵</span>
       </span>
     </button>
 
-  </div>
+  </div><!-- /left-col -->
 
+  <!-- RIGHT COL -->
   <div class="right-col">
 
+    <!-- Empty State -->
     <div class="empty-state" id="emptyState">
       <div class="empty-grid"></div>
-      <div class="empty-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
-      <div class="empty-h">Ready to verify</div>
-      <div class="empty-p">Configure a provider, paste your inputs, and click Verify Now to analyse for hallucinations.</div>
+      <div class="empty-ico">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <div class="empty-h" data-i18n="empty.title">Ready to verify</div>
+      <div class="empty-p" data-i18n="empty.subtitle">Configure a provider, paste your inputs, and click Verify Now to analyse for hallucinations.</div>
       <div class="empty-hints">
-        <div class="empty-hint-row"><div class="empty-hint-num">1</div><div class="empty-hint-text">Choose Free (Groq), GPT-4o, or Gemini engine</div></div>
-        <div class="empty-hint-row"><div class="empty-hint-num">2</div><div class="empty-hint-text">Leave context blank — Truthy fetches real-time web data automatically</div></div>
-        <div class="empty-hint-row"><div class="empty-hint-num">3</div><div class="empty-hint-text">Get the verdict, explanation, and correct answer in your chosen language</div></div>
+        <div class="empty-hint-row"><div class="empty-hint-num">1</div><div class="empty-hint-text" data-i18n="empty.hint1">Choose Free (Groq), GPT-4o, or Gemini engine</div></div>
+        <div class="empty-hint-row"><div class="empty-hint-num">2</div><div class="empty-hint-text" data-i18n="empty.hint2">Leave context blank — Truthy fetches real-time web data automatically</div></div>
+        <div class="empty-hint-row"><div class="empty-hint-num">3</div><div class="empty-hint-text" data-i18n="empty.hint3">Get the verdict, explanation and correct answer in your chosen language</div></div>
       </div>
     </div>
 
-    <div id="result" class="stack fade-in">
+    <!-- Result -->
+    <div id="result" class="right-col fade-in">
 
       <!-- Verdict Card -->
       <div class="verdict-card">
@@ -544,13 +925,13 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
             <div class="v-sub" id="vSub"></div>
           </div>
           <div class="conf-ring">
-            <svg viewBox="0 0 74 74">
-              <circle class="conf-track" cx="37" cy="37" r="31"/>
-              <circle class="conf-fill" id="confArc" cx="37" cy="37" r="31" stroke-dasharray="194.8" stroke-dashoffset="194.8"/>
+            <svg viewBox="0 0 96 96">
+              <circle class="conf-track" cx="48" cy="48" r="40"/>
+              <circle class="conf-fill" id="confArc" cx="48" cy="48" r="40" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
             </svg>
             <div class="conf-inner">
               <span class="conf-num" id="confNum">0%</span>
-              <span class="conf-lbl">CONF</span>
+              <span class="conf-lbl" data-i18n="ring.label">Confidence</span>
             </div>
           </div>
         </div>
@@ -558,17 +939,26 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
         <div class="type-row" id="typeRow" style="display:none"></div>
 
         <div class="detail" id="elemSection" style="display:none">
-          <div class="detail-lbl"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Hallucinated Elements</div>
+          <div class="detail-lbl">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span data-i18n="result.elements">Hallucinated Elements</span>
+          </div>
           <div class="elem-chips" id="elemChips"></div>
         </div>
 
         <div class="detail">
-          <div class="detail-lbl"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Explanation</div>
+          <div class="detail-lbl">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span data-i18n="result.explanation">Explanation</span>
+          </div>
           <div class="detail-body" id="expText"></div>
         </div>
 
         <div class="detail" id="correctSection" style="display:none">
-          <div class="detail-lbl" style="color:var(--ok)"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Correct Answer</div>
+          <div class="detail-lbl" style="color:var(--ok)">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="result.correct">Correct Answer</span>
+          </div>
           <div class="correct-box" id="correctText"></div>
         </div>
 
@@ -578,17 +968,24 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
         </div>
       </div>
 
-      <!-- Web Context Panel (structured) -->
+      <!-- Web Context Panel -->
       <div class="wc-panel" id="webCtxPanel" style="display:none">
         <div class="wc-hd">
           <div class="wc-hd-left">
             <svg class="wc-hd-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <span class="wc-hd-label">Web Context</span>
+            <span class="wc-hd-label" data-i18n="wc.title">Web Context</span>
             <span class="wc-auto-tag">AUTO</span>
           </div>
-          <span style="font-size:10.5px;font-weight:500;color:var(--tx3)">Sources used for verification</span>
+          <span class="wc-hd-right" data-i18n="wc.subtitle">Sources used for verification</span>
         </div>
         <div id="wcTitle" class="wc-title" style="display:none"></div>
+        <div id="wcCorrectBanner" class="wc-correct-banner" style="display:none">
+          <div class="wc-correct-banner-hd">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="result.correct">Correct Answer</span> — <span data-i18n="wc.fromweb">from web sources</span>
+          </div>
+          <div id="wcCorrectText" class="wc-correct-banner-body"></div>
+        </div>
         <div id="wcSummary" class="wc-summary" style="display:none"></div>
         <div id="wcFacts" class="wc-facts" style="display:none"></div>
         <div id="wcSources" class="wc-sources" style="display:none"></div>
@@ -597,117 +994,695 @@ pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--tx2);lin
       <!-- Code Card -->
       <div class="code-card" id="codeCard" style="display:none">
         <div class="code-hd">
-          <div class="code-label">API Reference</div>
+          <div class="code-label" data-i18n="code.title">API Reference</div>
           <div style="display:flex;align-items:center;gap:6px">
             <div class="code-tabs">
               <button class="code-tab active" onclick="switchTab('curl')">cURL</button>
               <button class="code-tab" onclick="switchTab('python')">Python</button>
-              <button class="code-tab" onclick="switchTab('json')">Response</button>
+              <button class="code-tab" onclick="switchTab('json')" data-i18n="code.response">Response</button>
             </div>
-            <button class="copy-btn" onclick="copyCode()">Copy</button>
+            <button class="copy-btn" onclick="copyCode()" data-i18n="code.copy">Copy</button>
           </div>
         </div>
         <div class="code-body"><pre id="codePre"></pre></div>
       </div>
 
-    </div>
+    </div><!-- /result -->
 
     <!-- Taxonomy -->
     <div class="tax-panel">
       <div class="tax-hd">
-        <div class="tax-hd-left"><div class="tax-hd-label">Reference</div><div class="tax-hd-title">Hallucination Taxonomy</div></div>
-        <span style="font-size:10.5px;font-weight:500;color:var(--tx3)">Click to explore</span>
+        <div class="tax-hd-left">
+          <div class="tax-hd-label" data-i18n="tax.ref">Reference</div>
+          <div class="tax-hd-title" data-i18n="tax.title">Hallucination Taxonomy</div>
+        </div>
+        <span style="font-size:10px;font-weight:500;color:var(--tx3)" data-i18n="tax.explore">Click to explore</span>
       </div>
-      <div class="tax-row" onclick="openTaxModal(0)"><div class="tax-num">1</div><div class="tax-text"><div class="tax-name">Out-of-Context Entity</div><div class="tax-desc">Fabricated entity absent from source context</div></div><span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
-      <div class="tax-row" onclick="openTaxModal(1)"><div class="tax-num">2</div><div class="tax-text"><div class="tax-name">Tuple Verification</div><div class="tax-desc">Real entities, incorrectly paired or linked</div></div><span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
-      <div class="tax-row" onclick="openTaxModal(2)"><div class="tax-num">3</div><div class="tax-text"><div class="tax-name">Out-of-Context Intent</div><div class="tax-desc">Correct entities, distorted relationship or intent</div></div><span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
-      <div class="tax-row" onclick="openTaxModal(3)"><div class="tax-num">4</div><div class="tax-text"><div class="tax-name">Triple Verification</div><div class="tax-desc">Full subject–predicate–object triple is wrong</div></div><span class="tax-arrow">View <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+      <div class="tax-row" onclick="openTaxModal(0)">
+        <div class="tax-num">1</div>
+        <div class="tax-text"><div class="tax-name" data-i18n="tax.1.name">Out-of-Context Entity</div><div class="tax-desc" data-i18n="tax.1.desc">Fabricated entity absent from source context</div></div>
+        <span class="tax-arrow"><span data-i18n="tax.view">View</span> <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="tax-row" onclick="openTaxModal(1)">
+        <div class="tax-num">2</div>
+        <div class="tax-text"><div class="tax-name" data-i18n="tax.2.name">Tuple Verification</div><div class="tax-desc" data-i18n="tax.2.desc">Real entities, incorrectly paired or linked</div></div>
+        <span class="tax-arrow"><span data-i18n="tax.view">View</span> <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="tax-row" onclick="openTaxModal(2)">
+        <div class="tax-num">3</div>
+        <div class="tax-text"><div class="tax-name" data-i18n="tax.3.name">Out-of-Context Intent</div><div class="tax-desc" data-i18n="tax.3.desc">Correct entities, distorted relationship or intent</div></div>
+        <span class="tax-arrow"><span data-i18n="tax.view">View</span> <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="tax-row" onclick="openTaxModal(3)">
+        <div class="tax-num">4</div>
+        <div class="tax-text"><div class="tax-name" data-i18n="tax.4.name">Triple Verification</div><div class="tax-desc" data-i18n="tax.4.desc">Full subject–predicate–object triple is wrong</div></div>
+        <span class="tax-arrow"><span data-i18n="tax.view">View</span> <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
     </div>
 
-  </div>
-</div>
+  </div><!-- /right-col -->
+</div><!-- /page -->
 
 <div id="taxModal" style="display:none"></div>
 
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════ -->
 <script>
-const SAMPLES=[
-  {paragraph:"Inception is a 2010 science fiction film directed by Christopher Nolan.",question:"Who directed Inception?",answer:"Inception was directed by Steven Spielberg."},
-  {paragraph:"Apple Inc. was founded in 1976 by Steve Jobs, Steve Wozniak, and Ronald Wayne.",question:"Who founded Apple?",answer:"Apple was founded by Bill Gates, Steve Jobs, and Paul Allen."},
-  {paragraph:"Tesla, Inc. was founded in 2003 by engineers Martin Eberhard and Marc Tarpenning.",question:"When was Tesla founded?",answer:"Tesla was founded in 2003 and is currently led by Elon Musk, who transformed it into the world's most valuable car company."},
-  {paragraph:"Nineteen Eighty-Four by George Orwell depicts a totalitarian society exploring themes of government control, truth manipulation, and loss of individual freedom.",question:"What is the central theme of 1984?",answer:"The novel promotes the idea that strong surveillance creates stability and social harmony."},
-  {paragraph:"",question:"Who won the 2018 FIFA World Cup?",answer:"The winner of the 2018 FIFA World Cup was Brazil."},
-];
-
-const TAX_DATA=[
-  {num:"1",name:"Out-of-Context Entity Hallucination",
-   definition:"The model introduces a person, place, object, or concept not present in the context. The model fabricates an entity with no grounding in the source material.",
-   whenItOccurs:"Occurs when the model draws on training knowledge rather than following context — inserting familiar but incorrect names or facts.",
-   question:"Who directed Inception?",wrongAnswer:"Steven Spielberg directed Inception.",rightAnswer:"Christopher Nolan directed Inception.",
-   wrongReason:"Spielberg is a real director but has no connection to Inception — he is an out-of-context entity.",
-   tags:["Fabricated entity","Context violation","Grounding error"]},
-  {num:"2",name:"Tuple Verification Hallucination",
-   definition:"Both entities in the answer are individually real, but the model incorrectly pairs or links them. The relationship between subject and object is hallucinated.",
-   whenItOccurs:"Common when a model knows about multiple entities in the same domain and confuses their relationships — right entities, wrong pairing.",
-   question:"Who founded Apple?",wrongAnswer:"Apple was founded by Bill Gates, Steve Jobs, and Paul Allen.",rightAnswer:"Apple was founded by Steve Jobs, Steve Wozniak, and Ronald Wayne.",
-   wrongReason:"Bill Gates and Paul Allen founded Microsoft, not Apple. Real entities, wrong pairing.",
-   tags:["Wrong pairing","Entity confusion","Relationship error"]},
-  {num:"3",name:"Out-of-Context Intent Hallucination",
-   definition:"The entities are correct, but the action, intent, or meaning attributed to them is wrong — often directly inverting the actual purpose or conclusion.",
-   whenItOccurs:"Occurs when the model identifies the right entities but misrepresents what they mean, why they exist, or what they concluded.",
-   question:"What is the central theme of 1984?",wrongAnswer:"The novel promotes surveillance as a force for stability.",rightAnswer:"The novel critiques totalitarian surveillance as oppression.",
-   wrongReason:"Orwell wrote 1984 as a warning against surveillance — the model inverted the intent entirely.",
-   tags:["Intent inversion","Meaning distortion","Semantic error"]},
-  {num:"4",name:"Triple Verification Hallucination",
-   definition:"The complete subject–predicate–object triple is wrong. Subject, verb, and object are all incorrect — a multi-level, comprehensive factual failure.",
-   whenItOccurs:"The most severe type. Occurs when the model has very little grounding and generates a plausible-sounding but entirely fabricated triple.",
-   question:"Who won the 2018 FIFA World Cup?",wrongAnswer:"Brazil won the 2018 World Cup held in Germany.",rightAnswer:"France won the 2018 FIFA World Cup, defeating Croatia 4-2 in Russia.",
-   wrongReason:"Wrong winner (Brazil), wrong host country (Germany) — a full structural triple failure.",
-   tags:["Full triple error","Multi-level failure","Severe hallucination"]},
-];
-
-const TYPE_META={
-  "1":{code:"1",name:"Out-of-Context Entity",def:"Answer introduces an entity not present in or inferable from context."},
-  "2":{code:"2",name:"Tuple Verification",def:"Real entities exist but are incorrectly paired or linked."},
-  "3":{code:"3",name:"Out-of-Context Intent",def:"Entities are correct but the relationship between them is distorted."},
-  "4":{code:"4",name:"Triple Verification",def:"Full subject–predicate–object triple is wrong at every structural level."},
+/* ── i18n dictionary ─────────────────────────────────────── */
+const I18N={
+  English:{
+    "nav.api":"API Docs","nav.github":"GitHub","nav.live":"Live","lang.select":"Select Language",
+    "hero.tag":"AI Hallucination Detection Engine",
+    "hero.h1a":"Scared of Hallucinations?","hero.h1b":"We're not.",
+    "hero.p":"Structured hallucination analysis across 4 taxonomy types. Free with Groq AI, or unlock higher accuracy with your own key.",
+    "hero.stat1":"Error Types","hero.stat2":"Providers","hero.stat3":"Languages","hero.stat4":"Free Engine",
+    "feat.1":"Auto web search — real-time context","feat.2":"Correct answer from web when hallucinated",
+    "feat.3":"15 languages supported","feat.4":"Keys never stored",
+    "panel.step1":"Step 1","panel.engine":"Choose Detection Engine",
+    "panel.step2":"Step 2","panel.inputs":"Provide Context & Answer",
+    "panel.quick":"Quick Start","panel.test":"Load a Test Case",
+    "prov.free":"Free","notice.free":"Free mode uses <strong>Groq · Llama 3.1 8B</strong> — a powerful open-source LLM. No API key needed. Switch to GPT-4o or Gemini for maximum accuracy.",
+    "key.label":"API Key","key.placeholder":"sk-…","key.get":"Get API key →",
+    "field.context":"Context Paragraph","field.contextHint":"optional — auto web search if blank",
+    "field.contextPh":"Paste reference context, or leave blank to auto-search the web…",
+    "field.question":"Question","field.questionPh":"The question posed to the LLM…",
+    "field.answer":"Model's Answer","field.answerPh":"The LLM output to fact-check…",
+    "btn.verify":"Verify Now",
+    "empty.title":"Ready to verify","empty.subtitle":"Configure a provider, paste your inputs, and click Verify Now to analyse for hallucinations.",
+    "empty.hint1":"Choose Free (Groq), GPT-4o, or Gemini engine",
+    "empty.hint2":"Leave context blank — Truthy fetches real-time web data automatically",
+    "empty.hint3":"Get the verdict, explanation and correct answer in your chosen language",
+    "ring.label":"Confidence",
+    "result.elements":"Hallucinated Elements","result.explanation":"Explanation","result.correct":"Correct Answer",
+    "wc.title":"Web Context","wc.subtitle":"Sources used for verification","wc.fromweb":"from web sources",
+    "code.title":"API Reference","code.response":"Response","code.copy":"Copy",
+    "tax.ref":"Reference","tax.title":"Hallucination Taxonomy","tax.explore":"Click to explore","tax.view":"View",
+    "tax.1.name":"Out-of-Context Entity","tax.1.desc":"Fabricated entity absent from source context",
+    "tax.2.name":"Tuple Verification","tax.2.desc":"Real entities, incorrectly paired or linked",
+    "tax.3.name":"Out-of-Context Intent","tax.3.desc":"Correct entities, distorted relationship or intent",
+    "tax.4.name":"Triple Verification","tax.4.desc":"Full subject–predicate–object triple is wrong",
+    "result.hallucinated":"Hallucination Detected","result.clean":"Output is Clean",
+    "result.cleanSub":"No hallucination found — factually consistent.","result.unclassified":"Unclassified hallucination",
+    "err.keyRequired":"An API key is required for","err.questionRequired":"Question is required.",
+    "err.answerRequired":"Model's answer is required.","err.network":"Network error:",
+    "searching":"Searching web","analysing":"Analysing…",
+  },
+  Hindi:{
+    "nav.api":"API दस्तावेज़","nav.github":"GitHub","nav.live":"सक्रिय","lang.select":"भाषा चुनें",
+    "hero.tag":"AI हेल्युसिनेशन डिटेक्शन इंजन",
+    "hero.h1a":"हेल्युसिनेशन से डरते हैं?","hero.h1b":"हम नहीं।",
+    "hero.p":"4 टैक्सोनॉमी प्रकारों में संरचित हेल्युसिनेशन विश्लेषण। Groq AI के साथ मुफ़्त, या अपनी API कुंजी से उच्च सटीकता।",
+    "hero.stat1":"त्रुटि प्रकार","hero.stat2":"प्रदाता","hero.stat3":"भाषाएँ","hero.stat4":"मुफ़्त इंजन",
+    "feat.1":"स्वतः वेब खोज — रीयल-टाइम संदर्भ","feat.2":"हेल्युसिनेशन होने पर सही उत्तर",
+    "feat.3":"15 भाषाएँ समर्थित","feat.4":"कुंजियाँ कभी संग्रहीत नहीं",
+    "panel.step1":"चरण 1","panel.engine":"डिटेक्शन इंजन चुनें",
+    "panel.step2":"चरण 2","panel.inputs":"संदर्भ और उत्तर दें",
+    "panel.quick":"त्वरित शुरुआत","panel.test":"परीक्षण केस लोड करें",
+    "prov.free":"मुफ़्त","notice.free":"मुफ़्त मोड <strong>Groq · Llama 3.1 8B</strong> का उपयोग करता है — एक शक्तिशाली ओपन-सोर्स LLM। आपको कोई API कुंजी नहीं चाहिए।",
+    "key.label":"API कुंजी","key.placeholder":"sk-…","key.get":"API कुंजी प्राप्त करें →",
+    "field.context":"संदर्भ अनुच्छेद","field.contextHint":"वैकल्पिक — रिक्त छोड़ें तो स्वतः वेब खोज होगी",
+    "field.contextPh":"संदर्भ पेस्ट करें, या खाली छोड़ें…","field.question":"प्रश्न","field.questionPh":"LLM से पूछा गया प्रश्न…",
+    "field.answer":"मॉडल का उत्तर","field.answerPh":"जाँचने के लिए LLM आउटपुट…",
+    "btn.verify":"अभी सत्यापित करें",
+    "empty.title":"सत्यापन के लिए तैयार","empty.subtitle":"प्रदाता चुनें, इनपुट पेस्ट करें और हेल्युसिनेशन की जाँच के लिए 'अभी सत्यापित करें' पर क्लिक करें।",
+    "empty.hint1":"मुफ़्त (Groq), GPT-4o, या Gemini इंजन चुनें",
+    "empty.hint2":"संदर्भ खाली छोड़ें — Truthy स्वतः वेब डेटा लाता है",
+    "empty.hint3":"चुनी हुई भाषा में निर्णय, स्पष्टीकरण और सही उत्तर पाएं",
+    "ring.label":"विश्वास",
+    "result.elements":"भ्रामक तत्व","result.explanation":"स्पष्टीकरण","result.correct":"सही उत्तर",
+    "wc.title":"वेब संदर्भ","wc.subtitle":"सत्यापन के लिए उपयोग किए गए स्रोत","wc.fromweb":"वेब स्रोतों से",
+    "code.title":"API संदर्भ","code.response":"प्रतिक्रिया","code.copy":"कॉपी करें",
+    "tax.ref":"संदर्भ","tax.title":"हेल्युसिनेशन वर्गीकरण","tax.explore":"क्लिक करें","tax.view":"देखें",
+    "tax.1.name":"संदर्भ से बाहर इकाई","tax.1.desc":"स्रोत संदर्भ में अनुपस्थित काल्पनिक इकाई",
+    "tax.2.name":"टुपल सत्यापन","tax.2.desc":"वास्तविक इकाइयाँ, गलत तरीके से जोड़ी गई",
+    "tax.3.name":"संदर्भ से बाहर इरादा","tax.3.desc":"सही इकाइयाँ, विकृत संबंध या इरादा",
+    "tax.4.name":"ट्रिपल सत्यापन","tax.4.desc":"विषय-विधेय-वस्तु ट्रिपल पूरी तरह गलत",
+    "result.hallucinated":"हेल्युसिनेशन पाया गया","result.clean":"आउटपुट सही है",
+    "result.cleanSub":"कोई हेल्युसिनेशन नहीं — तथ्यात्मक रूप से सुसंगत।","result.unclassified":"अवर्गीकृत हेल्युसिनेशन",
+    "err.keyRequired":"के लिए API कुंजी आवश्यक है","err.questionRequired":"प्रश्न आवश्यक है।",
+    "err.answerRequired":"मॉडल का उत्तर आवश्यक है।","err.network":"नेटवर्क त्रुटि:",
+    "searching":"वेब खोज रहे हैं","analysing":"विश्लेषण हो रहा है…",
+  },
+  Tamil:{
+    "nav.api":"API ஆவணங்கள்","nav.github":"GitHub","nav.live":"நேரடி","lang.select":"மொழி தேர்ந்தெடு",
+    "hero.tag":"AI ஹல்லுசினேஷன் கண்டறிவு இயந்திரம்",
+    "hero.h1a":"ஹல்லுசினேஷன்களால் பயப்படுகிறீர்களா?","hero.h1b":"நாங்கள் இல்லை.",
+    "hero.p":"4 வகைப்பாட்டு வகைகளில் கட்டமைக்கப்பட்ட ஹல்லுசினேஷன் பகுப்பாய்வு. Groq AI மூலம் இலவசம்.",
+    "hero.stat1":"பிழை வகைகள்","hero.stat2":"வழங்குநர்கள்","hero.stat3":"மொழிகள்","hero.stat4":"இலவச இயந்திரம்",
+    "feat.1":"தானியங்கி வலை தேடல்","feat.2":"ஹல்லுசினேஷன் நேரத்தில் சரியான பதில்",
+    "feat.3":"15 மொழிகள் ஆதரவு","feat.4":"திறவுகோல்கள் சேமிக்கப்படவில்லை",
+    "panel.step1":"படி 1","panel.engine":"கண்டறிவு இயந்திரத்தை தேர்ந்தெடுக்கவும்",
+    "panel.step2":"படி 2","panel.inputs":"சூழல் & பதில் வழங்கவும்",
+    "panel.quick":"விரைவு தொடக்கம்","panel.test":"சோதனை வழக்கை ஏற்றவும்",
+    "prov.free":"இலவசம்","notice.free":"இலவச பயன்முறை <strong>Groq · Llama 3.1 8B</strong> பயன்படுத்துகிறது.",
+    "key.label":"API திறவுகோல்","key.placeholder":"sk-…","key.get":"API திறவுகோல் பெறவும் →",
+    "field.context":"சூழல் பத்தி","field.contextHint":"விருப்பமானது — வெற்றிடமாக விட்டால் தானாக தேடும்",
+    "field.contextPh":"சூழலை ஒட்டவும் அல்லது வெற்றிடமாக விடவும்…","field.question":"கேள்வி","field.questionPh":"LLM-ஐக் கேட்கப்பட்ட கேள்வி…",
+    "field.answer":"மாதிரியின் பதில்","field.answerPh":"சரிபார்க்க LLM வெளியீடு…",
+    "btn.verify":"இப்போது சரிபார்க்கவும்",
+    "empty.title":"சரிபார்க்க தயார்","empty.subtitle":"வழங்குநரை தேர்ந்தெடுக்கவும், உள்ளீட்டை ஒட்டவும்.",
+    "empty.hint1":"இலவசம் (Groq), GPT-4o, அல்லது Gemini இயந்திரத்தை தேர்ந்தெடுக்கவும்",
+    "empty.hint2":"சூழலை வெற்றிடமாக விடவும் — Truthy தானாக தேடும்",
+    "empty.hint3":"தேர்ந்தெடுத்த மொழியில் தீர்ப்பு மற்றும் சரியான பதில் பெறவும்",
+    "ring.label":"நம்பிக்கை",
+    "result.elements":"ஹல்லுசினேட்டட் கூறுகள்","result.explanation":"விளக்கம்","result.correct":"சரியான பதில்",
+    "wc.title":"வலை சூழல்","wc.subtitle":"சரிபார்ப்புக்கு பயன்படுத்தப்பட்ட ஆதாரங்கள்","wc.fromweb":"வலை ஆதாரங்களிலிருந்து",
+    "code.title":"API குறிப்பு","code.response":"பதில்","code.copy":"நகலெடு",
+    "tax.ref":"குறிப்பு","tax.title":"ஹல்லுசினேஷன் வகைப்பாடு","tax.explore":"கிளிக் செய்யவும்","tax.view":"காண்க",
+    "tax.1.name":"சூழலுக்கு வெளியே உள்ள நிறுவனம்","tax.1.desc":"மூல சூழலில் இல்லாத கற்பனை நிறுவனம்",
+    "tax.2.name":"டப்பிள் சரிபார்ப்பு","tax.2.desc":"உண்மையான நிறுவனங்கள், தவறாக இணைக்கப்பட்டவை",
+    "tax.3.name":"சூழலுக்கு வெளியே உள்ள நோக்கம்","tax.3.desc":"சரியான நிறுவனங்கள், திரிந்த உறவு",
+    "tax.4.name":"ட்ரிபிள் சரிபார்ப்பு","tax.4.desc":"முழு விஷயம்-பயன்படுத்துதல்-பொருள் மூவடுக்கு தவறானது",
+    "result.hallucinated":"ஹல்லுசினேஷன் கண்டறியப்பட்டது","result.clean":"வெளியீடு சரியானது",
+    "result.cleanSub":"ஹல்லுசினேஷன் இல்லை — உண்மையில் சுசங்கதமானது.","result.unclassified":"வகைப்படுத்தப்படாத ஹல்லுசினேஷன்",
+    "err.keyRequired":"க்கு API திறவுகோல் தேவை","err.questionRequired":"கேள்வி தேவை.",
+    "err.answerRequired":"மாதிரியின் பதில் தேவை.","err.network":"நெட்வொர்க் பிழை:",
+    "searching":"வலையில் தேடுகிறது","analysing":"பகுப்பாய்வு செய்கிறது…",
+  },
+  Punjabi:{
+    "nav.api":"API ਦਸਤਾਵੇਜ਼","nav.github":"GitHub","nav.live":"ਲਾਈਵ","lang.select":"ਭਾਸ਼ਾ ਚੁਣੋ",
+    "hero.tag":"AI ਭੁਲੇਖਾ ਖੋਜ ਇੰਜਣ",
+    "hero.h1a":"ਭੁਲੇਖਿਆਂ ਤੋਂ ਡਰਦੇ ਹੋ?","hero.h1b":"ਅਸੀਂ ਨਹੀਂ।",
+    "hero.p":"4 ਵਰਗੀਕਰਨ ਕਿਸਮਾਂ ਵਿੱਚ ਭੁਲੇਖਾ ਵਿਸ਼ਲੇਸ਼ਣ। Groq AI ਨਾਲ ਮੁਫ਼ਤ।",
+    "hero.stat1":"ਗਲਤੀ ਦੀਆਂ ਕਿਸਮਾਂ","hero.stat2":"ਪ੍ਰਦਾਤਾ","hero.stat3":"ਭਾਸ਼ਾਵਾਂ","hero.stat4":"ਮੁਫ਼ਤ ਇੰਜਣ",
+    "feat.1":"ਆਪਣੇ ਆਪ ਵੈੱਬ ਖੋਜ","feat.2":"ਭੁਲੇਖੇ ਤੇ ਸਹੀ ਜਵਾਬ",
+    "feat.3":"12 ਭਾਸ਼ਾਵਾਂ ਸਮਰਥਿਤ","feat.4":"ਕੁੰਜੀਆਂ ਕਦੇ ਸੰਭਾਲੀਆਂ ਨਹੀਂ",
+    "panel.step1":"ਕਦਮ 1","panel.engine":"ਖੋਜ ਇੰਜਣ ਚੁਣੋ",
+    "panel.step2":"ਕਦਮ 2","panel.inputs":"ਸੰਦਰਭ ਅਤੇ ਜਵਾਬ ਦਿਓ",
+    "panel.quick":"ਜਲਦੀ ਸ਼ੁਰੂਆਤ","panel.test":"ਟੈਸਟ ਕੇਸ ਲੋਡ ਕਰੋ",
+    "prov.free":"ਮੁਫ਼ਤ","notice.free":"ਮੁਫ਼ਤ ਮੋਡ <strong>Groq · Llama 3.1 8B</strong> ਵਰਤਦਾ ਹੈ। ਕੋਈ API ਕੁੰਜੀ ਲੋੜੀਂਦੀ ਨਹੀਂ।",
+    "key.label":"API ਕੁੰਜੀ","key.placeholder":"sk-…","key.get":"API ਕੁੰਜੀ ਪ੍ਰਾਪਤ ਕਰੋ →",
+    "field.context":"ਸੰਦਰਭ ਪੈਰਾਗ੍ਰਾਫ","field.contextHint":"ਵਿਕਲਪਿਕ — ਖਾਲੀ ਛੱਡੋ ਤਾਂ ਆਪਣੇ ਆਪ ਖੋਜ ਹੋਵੇਗੀ",
+    "field.contextPh":"ਸੰਦਰਭ ਪੇਸਟ ਕਰੋ ਜਾਂ ਖਾਲੀ ਛੱਡੋ…","field.question":"ਸਵਾਲ","field.questionPh":"LLM ਤੋਂ ਪੁੱਛਿਆ ਸਵਾਲ…",
+    "field.answer":"ਮਾਡਲ ਦਾ ਜਵਾਬ","field.answerPh":"ਜਾਂਚਣ ਲਈ LLM ਆਉਟਪੁੱਟ…",
+    "btn.verify":"ਹੁਣੇ ਤਸਦੀਕ ਕਰੋ",
+    "empty.title":"ਤਸਦੀਕ ਲਈ ਤਿਆਰ","empty.subtitle":"ਪ੍ਰਦਾਤਾ ਚੁਣੋ, ਇਨਪੁੱਟ ਪੇਸਟ ਕਰੋ।",
+    "empty.hint1":"ਮੁਫ਼ਤ (Groq), GPT-4o, ਜਾਂ Gemini ਇੰਜਣ ਚੁਣੋ",
+    "empty.hint2":"ਸੰਦਰਭ ਖਾਲੀ ਛੱਡੋ — Truthy ਆਪਣੇ ਆਪ ਡੇਟਾ ਲਿਆਉਂਦਾ ਹੈ",
+    "empty.hint3":"ਚੁਣੀ ਭਾਸ਼ਾ ਵਿੱਚ ਫ਼ੈਸਲਾ ਅਤੇ ਸਹੀ ਜਵਾਬ ਪ੍ਰਾਪਤ ਕਰੋ",
+    "ring.label":"ਭਰੋਸਾ",
+    "result.elements":"ਭੁਲੇਖੇ ਵਾਲੇ ਤੱਤ","result.explanation":"ਵਿਆਖਿਆ","result.correct":"ਸਹੀ ਜਵਾਬ",
+    "wc.title":"ਵੈੱਬ ਸੰਦਰਭ","wc.subtitle":"ਤਸਦੀਕ ਲਈ ਵਰਤੇ ਸਰੋਤ","wc.fromweb":"ਵੈੱਬ ਸਰੋਤਾਂ ਤੋਂ",
+    "code.title":"API ਹਵਾਲਾ","code.response":"ਜਵਾਬ","code.copy":"ਕਾਪੀ",
+    "tax.ref":"ਹਵਾਲਾ","tax.title":"ਭੁਲੇਖਾ ਵਰਗੀਕਰਨ","tax.explore":"ਕਲਿੱਕ ਕਰੋ","tax.view":"ਦੇਖੋ",
+    "tax.1.name":"ਸੰਦਰਭ ਤੋਂ ਬਾਹਰ ਹਸਤੀ","tax.1.desc":"ਸਰੋਤ ਸੰਦਰਭ ਵਿੱਚ ਗੈਰਹਾਜ਼ਰ ਕਾਲਪਨਿਕ ਹਸਤੀ",
+    "tax.2.name":"ਟਪਲ ਤਸਦੀਕ","tax.2.desc":"ਅਸਲ ਹਸਤੀਆਂ, ਗਲਤ ਤਰੀਕੇ ਨਾਲ ਜੋੜੀਆਂ",
+    "tax.3.name":"ਸੰਦਰਭ ਤੋਂ ਬਾਹਰ ਇਰਾਦਾ","tax.3.desc":"ਸਹੀ ਹਸਤੀਆਂ, ਵਿਗੜਿਆ ਸੰਬੰਧ",
+    "tax.4.name":"ਤਿੱਕੜੀ ਤਸਦੀਕ","tax.4.desc":"ਪੂਰੀ ਵਿਸ਼ੇ-ਕਿਰਿਆ-ਵਸਤੂ ਤਿੱਕੜੀ ਗਲਤ",
+    "result.hallucinated":"ਭੁਲੇਖਾ ਮਿਲਿਆ","result.clean":"ਆਉਟਪੁੱਟ ਸਹੀ ਹੈ",
+    "result.cleanSub":"ਕੋਈ ਭੁਲੇਖਾ ਨਹੀਂ — ਤੱਥਾਂ ਨਾਲ ਮੇਲ ਖਾਂਦਾ।","result.unclassified":"ਅਵਰਗੀਕ੍ਰਿਤ ਭੁਲੇਖਾ",
+    "err.keyRequired":"ਲਈ API ਕੁੰਜੀ ਲੋੜੀਂਦੀ ਹੈ","err.questionRequired":"ਸਵਾਲ ਲੋੜੀਂਦਾ ਹੈ।",
+    "err.answerRequired":"ਮਾਡਲ ਦਾ ਜਵਾਬ ਲੋੜੀਂਦਾ ਹੈ।","err.network":"ਨੈੱਟਵਰਕ ਗਲਤੀ:",
+    "searching":"ਵੈੱਬ ਖੋਜ ਰਹੇ ਹਾਂ","analysing":"ਵਿਸ਼ਲੇਸ਼ਣ ਹੋ ਰਿਹਾ ਹੈ…",
+  },
+  Spanish:{
+    "nav.api":"Docs API","nav.github":"GitHub","nav.live":"En vivo","lang.select":"Seleccionar idioma",
+    "hero.tag":"Motor de detección de alucinaciones IA",
+    "hero.h1a":"¿Miedo a las alucinaciones?","hero.h1b":"Nosotros no.",
+    "hero.p":"Análisis estructurado de alucinaciones en 4 tipos de taxonomía. Gratis con Groq AI.",
+    "hero.stat1":"Tipos de error","hero.stat2":"Proveedores","hero.stat3":"Idiomas","hero.stat4":"Motor gratis",
+    "feat.1":"Búsqueda web automática","feat.2":"Respuesta correcta cuando hay alucinación",
+    "feat.3":"12 idiomas soportados","feat.4":"Claves nunca almacenadas",
+    "panel.step1":"Paso 1","panel.engine":"Elegir motor de detección",
+    "panel.step2":"Paso 2","panel.inputs":"Proporcionar contexto y respuesta",
+    "panel.quick":"Inicio rápido","panel.test":"Cargar caso de prueba",
+    "prov.free":"Gratis","notice.free":"El modo gratuito usa <strong>Groq · Llama 3.1 8B</strong>. No se necesita clave API.",
+    "key.label":"Clave API","key.placeholder":"sk-…","key.get":"Obtener clave API →",
+    "field.context":"Párrafo de contexto","field.contextHint":"opcional — búsqueda web automática si está vacío",
+    "field.contextPh":"Pegue el contexto o déjelo vacío…","field.question":"Pregunta","field.questionPh":"La pregunta al LLM…",
+    "field.answer":"Respuesta del modelo","field.answerPh":"La salida del LLM a verificar…",
+    "btn.verify":"Verificar ahora",
+    "empty.title":"Listo para verificar","empty.subtitle":"Configure un proveedor, pegue sus entradas y haga clic en Verificar ahora.",
+    "empty.hint1":"Elija el motor Gratis (Groq), GPT-4o o Gemini",
+    "empty.hint2":"Deje el contexto vacío — Truthy busca datos web automáticamente",
+    "empty.hint3":"Obtenga el veredicto y la respuesta correcta en su idioma",
+    "ring.label":"Confianza",
+    "result.elements":"Elementos alucinados","result.explanation":"Explicación","result.correct":"Respuesta correcta",
+    "wc.title":"Contexto web","wc.subtitle":"Fuentes usadas para verificación","wc.fromweb":"de fuentes web",
+    "code.title":"Referencia API","code.response":"Respuesta","code.copy":"Copiar",
+    "tax.ref":"Referencia","tax.title":"Taxonomía de alucinaciones","tax.explore":"Clic para explorar","tax.view":"Ver",
+    "tax.1.name":"Entidad fuera de contexto","tax.1.desc":"Entidad fabricada ausente del contexto fuente",
+    "tax.2.name":"Verificación de tupla","tax.2.desc":"Entidades reales, incorrectamente emparejadas",
+    "tax.3.name":"Intención fuera de contexto","tax.3.desc":"Entidades correctas, relación distorsionada",
+    "tax.4.name":"Verificación triple","tax.4.desc":"La triple sujeto-predicado-objeto completa es incorrecta",
+    "result.hallucinated":"Alucinación detectada","result.clean":"La salida es correcta",
+    "result.cleanSub":"Sin alucinación — factualmente consistente.","result.unclassified":"Alucinación no clasificada",
+    "err.keyRequired":"Se requiere clave API para","err.questionRequired":"La pregunta es obligatoria.",
+    "err.answerRequired":"La respuesta del modelo es obligatoria.","err.network":"Error de red:",
+    "searching":"Buscando en web","analysing":"Analizando…",
+  },
+  French:{
+    "nav.api":"Docs API","nav.github":"GitHub","nav.live":"En direct","lang.select":"Sélectionner la langue",
+    "hero.tag":"Moteur de détection d'hallucinations IA",
+    "hero.h1a":"Peur des hallucinations?","hero.h1b":"Nous, non.",
+    "hero.p":"Analyse structurée des hallucinations sur 4 types de taxonomie. Gratuit avec Groq AI.",
+    "hero.stat1":"Types d'erreur","hero.stat2":"Fournisseurs","hero.stat3":"Langues","hero.stat4":"Moteur gratuit",
+    "feat.1":"Recherche web automatique","feat.2":"Réponse correcte si hallucination",
+    "feat.3":"12 langues supportées","feat.4":"Clés jamais stockées",
+    "panel.step1":"Étape 1","panel.engine":"Choisir le moteur de détection",
+    "panel.step2":"Étape 2","panel.inputs":"Fournir contexte et réponse",
+    "panel.quick":"Démarrage rapide","panel.test":"Charger un cas de test",
+    "prov.free":"Gratuit","notice.free":"Le mode gratuit utilise <strong>Groq · Llama 3.1 8B</strong>. Aucune clé API requise.",
+    "key.label":"Clé API","key.placeholder":"sk-…","key.get":"Obtenir une clé API →",
+    "field.context":"Paragraphe de contexte","field.contextHint":"optionnel — recherche web auto si vide",
+    "field.contextPh":"Collez le contexte ou laissez vide…","field.question":"Question","field.questionPh":"La question posée au LLM…",
+    "field.answer":"Réponse du modèle","field.answerPh":"La sortie LLM à vérifier…",
+    "btn.verify":"Vérifier maintenant",
+    "empty.title":"Prêt à vérifier","empty.subtitle":"Configurez un fournisseur, collez vos entrées et cliquez sur Vérifier.",
+    "empty.hint1":"Choisissez le moteur Gratuit (Groq), GPT-4o ou Gemini",
+    "empty.hint2":"Laissez le contexte vide — Truthy recherche automatiquement",
+    "empty.hint3":"Obtenez le verdict et la réponse correcte dans votre langue",
+    "ring.label":"Confiance",
+    "result.elements":"Éléments hallucinés","result.explanation":"Explication","result.correct":"Réponse correcte",
+    "wc.title":"Contexte web","wc.subtitle":"Sources utilisées pour la vérification","wc.fromweb":"de sources web",
+    "code.title":"Référence API","code.response":"Réponse","code.copy":"Copier",
+    "tax.ref":"Référence","tax.title":"Taxonomie des hallucinations","tax.explore":"Cliquez pour explorer","tax.view":"Voir",
+    "tax.1.name":"Entité hors contexte","tax.1.desc":"Entité fabriquée absente du contexte source",
+    "tax.2.name":"Vérification de tuple","tax.2.desc":"Entités réelles, mal associées",
+    "tax.3.name":"Intention hors contexte","tax.3.desc":"Entités correctes, relation distordue",
+    "tax.4.name":"Vérification triple","tax.4.desc":"Le triple sujet-prédicat-objet est entièrement incorrect",
+    "result.hallucinated":"Hallucination détectée","result.clean":"La sortie est correcte",
+    "result.cleanSub":"Aucune hallucination — factuelment cohérent.","result.unclassified":"Hallucination non classifiée",
+    "err.keyRequired":"Clé API requise pour","err.questionRequired":"La question est requise.",
+    "err.answerRequired":"La réponse du modèle est requise.","err.network":"Erreur réseau:",
+    "searching":"Recherche web","analysing":"Analyse en cours…",
+  },
+  German:{
+    "nav.api":"API-Docs","nav.github":"GitHub","nav.live":"Live","lang.select":"Sprache wählen",
+    "hero.tag":"KI-Halluzinationserkennungs-Engine",
+    "hero.h1a":"Angst vor Halluzinationen?","hero.h1b":"Wir nicht.",
+    "hero.p":"Strukturierte Halluzinationsanalyse über 4 Taxonomietypen. Kostenlos mit Groq AI.",
+    "hero.stat1":"Fehlertypen","hero.stat2":"Anbieter","hero.stat3":"Sprachen","hero.stat4":"Kostenlose Engine",
+    "feat.1":"Automatische Websuche","feat.2":"Richtige Antwort bei Halluzination",
+    "feat.3":"12 Sprachen unterstützt","feat.4":"Schlüssel werden nie gespeichert",
+    "panel.step1":"Schritt 1","panel.engine":"Erkennungsmotor wählen",
+    "panel.step2":"Schritt 2","panel.inputs":"Kontext und Antwort angeben",
+    "panel.quick":"Schnellstart","panel.test":"Testfall laden",
+    "prov.free":"Kostenlos","notice.free":"Der kostenlose Modus verwendet <strong>Groq · Llama 3.1 8B</strong>. Kein API-Schlüssel erforderlich.",
+    "key.label":"API-Schlüssel","key.placeholder":"sk-…","key.get":"API-Schlüssel holen →",
+    "field.context":"Kontextabsatz","field.contextHint":"optional — automatische Websuche wenn leer",
+    "field.contextPh":"Kontext einfügen oder leer lassen…","field.question":"Frage","field.questionPh":"Die dem LLM gestellte Frage…",
+    "field.answer":"Modellantwort","field.answerPh":"Die zu prüfende LLM-Ausgabe…",
+    "btn.verify":"Jetzt prüfen",
+    "empty.title":"Bereit zur Prüfung","empty.subtitle":"Anbieter konfigurieren, Eingaben einfügen und auf Jetzt prüfen klicken.",
+    "empty.hint1":"Kostenlose (Groq), GPT-4o oder Gemini-Engine wählen",
+    "empty.hint2":"Kontext leer lassen — Truthy sucht automatisch im Web",
+    "empty.hint3":"Urteil und richtige Antwort in gewählter Sprache erhalten",
+    "ring.label":"Konfidenz",
+    "result.elements":"Halluzinierte Elemente","result.explanation":"Erklärung","result.correct":"Richtige Antwort",
+    "wc.title":"Webkontext","wc.subtitle":"Zur Prüfung verwendete Quellen","wc.fromweb":"aus Web-Quellen",
+    "code.title":"API-Referenz","code.response":"Antwort","code.copy":"Kopieren",
+    "tax.ref":"Referenz","tax.title":"Halluzinations-Taxonomie","tax.explore":"Klicken zum Erkunden","tax.view":"Ansehen",
+    "tax.1.name":"Außer-Kontext-Entität","tax.1.desc":"Erfundene Entität fehlt im Quellkontext",
+    "tax.2.name":"Tupel-Verifikation","tax.2.desc":"Echte Entitäten, falsch gepaart",
+    "tax.3.name":"Außer-Kontext-Absicht","tax.3.desc":"Richtige Entitäten, verzerrte Beziehung",
+    "tax.4.name":"Triple-Verifikation","tax.4.desc":"Vollständiges Subjekt-Prädikat-Objekt-Tripel falsch",
+    "result.hallucinated":"Halluzination erkannt","result.clean":"Ausgabe ist korrekt",
+    "result.cleanSub":"Keine Halluzination — faktisch konsistent.","result.unclassified":"Nicht klassifizierte Halluzination",
+    "err.keyRequired":"API-Schlüssel erforderlich für","err.questionRequired":"Frage ist erforderlich.",
+    "err.answerRequired":"Modellantwort ist erforderlich.","err.network":"Netzwerkfehler:",
+    "searching":"Web wird durchsucht","analysing":"Wird analysiert…",
+  },
+  Arabic:{
+    "nav.api":"وثائق API","nav.github":"GitHub","nav.live":"مباشر","lang.select":"اختر اللغة",
+    "hero.tag":"محرك كشف هلوسة الذكاء الاصطناعي",
+    "hero.h1a":"خائف من الهلوسة؟","hero.h1b":"نحن لسنا كذلك.",
+    "hero.p":"تحليل منظم للهلوسة عبر 4 أنواع. مجاني مع Groq AI.",
+    "hero.stat1":"أنواع الأخطاء","hero.stat2":"مزودون","hero.stat3":"لغات","hero.stat4":"محرك مجاني",
+    "feat.1":"بحث ويب تلقائي","feat.2":"إجابة صحيحة عند الهلوسة",
+    "feat.3":"12 لغة مدعومة","feat.4":"المفاتيح لا تُحفظ أبداً",
+    "panel.step1":"الخطوة 1","panel.engine":"اختر محرك الكشف",
+    "panel.step2":"الخطوة 2","panel.inputs":"قدّم السياق والإجابة",
+    "panel.quick":"بداية سريعة","panel.test":"تحميل حالة اختبار",
+    "prov.free":"مجاني","notice.free":"الوضع المجاني يستخدم <strong>Groq · Llama 3.1 8B</strong>. لا حاجة لمفتاح API.",
+    "key.label":"مفتاح API","key.placeholder":"sk-…","key.get":"احصل على مفتاح API ←",
+    "field.context":"فقرة السياق","field.contextHint":"اختياري — بحث ويب تلقائي إذا تركته فارغاً",
+    "field.contextPh":"الصق السياق أو اتركه فارغاً…","field.question":"السؤال","field.questionPh":"السؤال الموجّه لنموذج اللغة…",
+    "field.answer":"إجابة النموذج","field.answerPh":"مخرجات النموذج للتحقق منها…",
+    "btn.verify":"تحقق الآن",
+    "empty.title":"جاهز للتحقق","empty.subtitle":"اختر مزوداً والصق المدخلات وانقر على تحقق الآن.",
+    "empty.hint1":"اختر المحرك المجاني (Groq) أو GPT-4o أو Gemini",
+    "empty.hint2":"اترك السياق فارغاً — Truthy يجلب بيانات الويب تلقائياً",
+    "empty.hint3":"احصل على الحكم والإجابة الصحيحة بلغتك المختارة",
+    "ring.label":"الثقة",
+    "result.elements":"عناصر الهلوسة","result.explanation":"التفسير","result.correct":"الإجابة الصحيحة",
+    "wc.title":"سياق الويب","wc.subtitle":"المصادر المستخدمة للتحقق","wc.fromweb":"من مصادر الويب",
+    "code.title":"مرجع API","code.response":"الاستجابة","code.copy":"نسخ",
+    "tax.ref":"مرجع","tax.title":"تصنيف الهلوسة","tax.explore":"انقر للاستكشاف","tax.view":"عرض",
+    "tax.1.name":"كيان خارج السياق","tax.1.desc":"كيان مختلق غائب عن سياق المصدر",
+    "tax.2.name":"التحقق من الثنائي","tax.2.desc":"كيانات حقيقية مقترنة بشكل خاطئ",
+    "tax.3.name":"نية خارج السياق","tax.3.desc":"كيانات صحيحة، علاقة مشوّهة",
+    "tax.4.name":"التحقق الثلاثي","tax.4.desc":"الثلاثي كاملاً خاطئ",
+    "result.hallucinated":"تم اكتشاف هلوسة","result.clean":"المخرجات صحيحة",
+    "result.cleanSub":"لا هلوسة — متسقة واقعياً.","result.unclassified":"هلوسة غير مصنفة",
+    "err.keyRequired":"مفتاح API مطلوب لـ","err.questionRequired":"السؤال مطلوب.",
+    "err.answerRequired":"إجابة النموذج مطلوبة.","err.network":"خطأ في الشبكة:",
+    "searching":"البحث في الويب","analysing":"جارٍ التحليل…",
+  },
+  Japanese:{
+    "nav.api":"APIドキュメント","nav.github":"GitHub","nav.live":"ライブ","lang.select":"言語を選択",
+    "hero.tag":"AI幻覚検出エンジン",
+    "hero.h1a":"幻覚が怖い？","hero.h1b":"私たちは怖くない。",
+    "hero.p":"4つの分類タイプにわたる構造的幻覚分析。Groq AIで無料。",
+    "hero.stat1":"エラータイプ","hero.stat2":"プロバイダー","hero.stat3":"言語","hero.stat4":"無料エンジン",
+    "feat.1":"自動ウェブ検索","feat.2":"幻覚時の正解",
+    "feat.3":"12言語対応","feat.4":"キーは保存されない",
+    "panel.step1":"ステップ1","panel.engine":"検出エンジンを選択",
+    "panel.step2":"ステップ2","panel.inputs":"コンテキストと回答を入力",
+    "panel.quick":"クイックスタート","panel.test":"テストケースを読み込む",
+    "prov.free":"無料","notice.free":"無料モードは<strong>Groq · Llama 3.1 8B</strong>を使用。APIキー不要。",
+    "key.label":"APIキー","key.placeholder":"sk-…","key.get":"APIキーを取得 →",
+    "field.context":"コンテキスト段落","field.contextHint":"任意 — 空白の場合は自動ウェブ検索",
+    "field.contextPh":"コンテキストを貼り付けるか空白のまま…","field.question":"質問","field.questionPh":"LLMへの質問…",
+    "field.answer":"モデルの回答","field.answerPh":"確認するLLM出力…",
+    "btn.verify":"今すぐ検証",
+    "empty.title":"検証準備完了","empty.subtitle":"プロバイダーを設定し、入力を貼り付けて今すぐ検証をクリック。",
+    "empty.hint1":"無料(Groq)、GPT-4o、またはGeminiエンジンを選択",
+    "empty.hint2":"コンテキストを空白に — Truhtyが自動でウェブデータを取得",
+    "empty.hint3":"選択した言語で判定と正解を取得",
+    "ring.label":"信頼度",
+    "result.elements":"幻覚要素","result.explanation":"説明","result.correct":"正解",
+    "wc.title":"ウェブコンテキスト","wc.subtitle":"検証に使用したソース","wc.fromweb":"ウェブソースから",
+    "code.title":"APIリファレンス","code.response":"レスポンス","code.copy":"コピー",
+    "tax.ref":"参考","tax.title":"幻覚分類法","tax.explore":"クリックして探索","tax.view":"表示",
+    "tax.1.name":"文脈外エンティティ","tax.1.desc":"ソースコンテキストにない架空のエンティティ",
+    "tax.2.name":"タプル検証","tax.2.desc":"実在するエンティティが誤ってペアリングされた",
+    "tax.3.name":"文脈外意図","tax.3.desc":"正しいエンティティ、歪んだ関係",
+    "tax.4.name":"トリプル検証","tax.4.desc":"主語-述語-目的語の全体が誤り",
+    "result.hallucinated":"幻覚を検出","result.clean":"出力は正確",
+    "result.cleanSub":"幻覚なし — 事実と一致。","result.unclassified":"未分類の幻覚",
+    "err.keyRequired":"にはAPIキーが必要です","err.questionRequired":"質問は必須です。",
+    "err.answerRequired":"モデルの回答は必須です。","err.network":"ネットワークエラー:",
+    "searching":"ウェブを検索中","analysing":"分析中…",
+  },
+  Chinese:{
+    "nav.api":"API文档","nav.github":"GitHub","nav.live":"直播","lang.select":"选择语言",
+    "hero.tag":"AI幻觉检测引擎",
+    "hero.h1a":"害怕幻觉？","hero.h1b":"我们不怕。",
+    "hero.p":"跨4种分类类型的结构化幻觉分析。使用Groq AI免费。",
+    "hero.stat1":"错误类型","hero.stat2":"提供商","hero.stat3":"语言","hero.stat4":"免费引擎",
+    "feat.1":"自动网络搜索","feat.2":"幻觉时的正确答案",
+    "feat.3":"支持12种语言","feat.4":"密钥从不存储",
+    "panel.step1":"步骤1","panel.engine":"选择检测引擎",
+    "panel.step2":"步骤2","panel.inputs":"提供上下文和答案",
+    "panel.quick":"快速开始","panel.test":"加载测试用例",
+    "prov.free":"免费","notice.free":"免费模式使用<strong>Groq · Llama 3.1 8B</strong>。无需API密钥。",
+    "key.label":"API密钥","key.placeholder":"sk-…","key.get":"获取API密钥 →",
+    "field.context":"上下文段落","field.contextHint":"可选 — 留空则自动网络搜索",
+    "field.contextPh":"粘贴上下文或留空…","field.question":"问题","field.questionPh":"向LLM提出的问题…",
+    "field.answer":"模型答案","field.answerPh":"要验证的LLM输出…",
+    "btn.verify":"立即验证",
+    "empty.title":"准备验证","empty.subtitle":"配置提供商，粘贴输入，然后点击立即验证。",
+    "empty.hint1":"选择免费(Groq)、GPT-4o或Gemini引擎",
+    "empty.hint2":"留空上下文 — Truthy自动获取网络数据",
+    "empty.hint3":"以所选语言获取判决和正确答案",
+    "ring.label":"置信度",
+    "result.elements":"幻觉元素","result.explanation":"解释","result.correct":"正确答案",
+    "wc.title":"网络上下文","wc.subtitle":"用于验证的来源","wc.fromweb":"来自网络资源",
+    "code.title":"API参考","code.response":"响应","code.copy":"复制",
+    "tax.ref":"参考","tax.title":"幻觉分类法","tax.explore":"点击探索","tax.view":"查看",
+    "tax.1.name":"上下文外实体","tax.1.desc":"源上下文中不存在的虚构实体",
+    "tax.2.name":"元组验证","tax.2.desc":"真实实体，错误配对",
+    "tax.3.name":"上下文外意图","tax.3.desc":"正确实体，扭曲的关系",
+    "tax.4.name":"三元组验证","tax.4.desc":"完整的主谓宾三元组错误",
+    "result.hallucinated":"检测到幻觉","result.clean":"输出正确",
+    "result.cleanSub":"无幻觉 — 事实一致。","result.unclassified":"未分类幻觉",
+    "err.keyRequired":"需要API密钥","err.questionRequired":"问题是必填项。",
+    "err.answerRequired":"模型答案是必填项。","err.network":"网络错误:",
+    "searching":"正在搜索网络","analysing":"正在分析…",
+  },
+  Portuguese:{
+    "nav.api":"Docs API","nav.github":"GitHub","nav.live":"Ao vivo","lang.select":"Selecionar idioma",
+    "hero.tag":"Motor de detecção de alucinações IA",
+    "hero.h1a":"Com medo de alucinações?","hero.h1b":"Nós não.",
+    "hero.p":"Análise estruturada de alucinações em 4 tipos de taxonomia. Grátis com Groq AI.",
+    "hero.stat1":"Tipos de erro","hero.stat2":"Provedores","hero.stat3":"Idiomas","hero.stat4":"Motor grátis",
+    "feat.1":"Busca web automática","feat.2":"Resposta correta quando há alucinação",
+    "feat.3":"12 idiomas suportados","feat.4":"Chaves nunca armazenadas",
+    "panel.step1":"Passo 1","panel.engine":"Escolher motor de detecção",
+    "panel.step2":"Passo 2","panel.inputs":"Fornecer contexto e resposta",
+    "panel.quick":"Início rápido","panel.test":"Carregar caso de teste",
+    "prov.free":"Grátis","notice.free":"O modo gratuito usa <strong>Groq · Llama 3.1 8B</strong>. Nenhuma chave API necessária.",
+    "key.label":"Chave API","key.placeholder":"sk-…","key.get":"Obter chave API →",
+    "field.context":"Parágrafo de contexto","field.contextHint":"opcional — busca web automática se vazio",
+    "field.contextPh":"Cole o contexto ou deixe em branco…","field.question":"Pergunta","field.questionPh":"A pergunta feita ao LLM…",
+    "field.answer":"Resposta do modelo","field.answerPh":"A saída do LLM a verificar…",
+    "btn.verify":"Verificar agora",
+    "empty.title":"Pronto para verificar","empty.subtitle":"Configure um provedor, cole suas entradas e clique em Verificar agora.",
+    "empty.hint1":"Escolha o motor Grátis (Groq), GPT-4o ou Gemini",
+    "empty.hint2":"Deixe o contexto vazio — Truthy busca dados web automaticamente",
+    "empty.hint3":"Obtenha o veredicto e a resposta correta no seu idioma",
+    "ring.label":"Confiança",
+    "result.elements":"Elementos alucinados","result.explanation":"Explicação","result.correct":"Resposta correta",
+    "wc.title":"Contexto web","wc.subtitle":"Fontes usadas para verificação","wc.fromweb":"de fontes web",
+    "code.title":"Referência API","code.response":"Resposta","code.copy":"Copiar",
+    "tax.ref":"Referência","tax.title":"Taxonomia de alucinações","tax.explore":"Clique para explorar","tax.view":"Ver",
+    "tax.1.name":"Entidade fora de contexto","tax.1.desc":"Entidade fabricada ausente do contexto fonte",
+    "tax.2.name":"Verificação de tupla","tax.2.desc":"Entidades reais, incorretamente emparelhadas",
+    "tax.3.name":"Intenção fora de contexto","tax.3.desc":"Entidades corretas, relação distorcida",
+    "tax.4.name":"Verificação tripla","tax.4.desc":"A tripla sujeito-predicado-objeto completa está errada",
+    "result.hallucinated":"Alucinação detectada","result.clean":"A saída está correta",
+    "result.cleanSub":"Sem alucinação — factualmente consistente.","result.unclassified":"Alucinação não classificada",
+    "err.keyRequired":"Chave API necessária para","err.questionRequired":"A pergunta é obrigatória.",
+    "err.answerRequired":"A resposta do modelo é obrigatória.","err.network":"Erro de rede:",
+    "searching":"Pesquisando na web","analysing":"Analisando…",
+  },
+  Russian:{
+    "nav.api":"Документация API","nav.github":"GitHub","nav.live":"В эфире","lang.select":"Выбрать язык",
+    "hero.tag":"Движок обнаружения галлюцинаций ИИ",
+    "hero.h1a":"Боитесь галлюцинаций?","hero.h1b":"Мы — нет.",
+    "hero.p":"Структурированный анализ галлюцинаций по 4 типам таксономии. Бесплатно с Groq AI.",
+    "hero.stat1":"Типы ошибок","hero.stat2":"Провайдеры","hero.stat3":"Языки","hero.stat4":"Бесплатный движок",
+    "feat.1":"Автоматический поиск в сети","feat.2":"Правильный ответ при галлюцинации",
+    "feat.3":"12 языков поддерживается","feat.4":"Ключи никогда не хранятся",
+    "panel.step1":"Шаг 1","panel.engine":"Выбрать движок обнаружения",
+    "panel.step2":"Шаг 2","panel.inputs":"Предоставить контекст и ответ",
+    "panel.quick":"Быстрый старт","panel.test":"Загрузить тестовый случай",
+    "prov.free":"Бесплатно","notice.free":"Бесплатный режим использует <strong>Groq · Llama 3.1 8B</strong>. API-ключ не нужен.",
+    "key.label":"API-ключ","key.placeholder":"sk-…","key.get":"Получить API-ключ →",
+    "field.context":"Контекстный абзац","field.contextHint":"необязательно — автоматический веб-поиск если пусто",
+    "field.contextPh":"Вставьте контекст или оставьте пустым…","field.question":"Вопрос","field.questionPh":"Вопрос, заданный LLM…",
+    "field.answer":"Ответ модели","field.answerPh":"Вывод LLM для проверки…",
+    "btn.verify":"Проверить сейчас",
+    "empty.title":"Готов к проверке","empty.subtitle":"Настройте провайдера, вставьте данные и нажмите Проверить сейчас.",
+    "empty.hint1":"Выберите бесплатный (Groq), GPT-4o или Gemini движок",
+    "empty.hint2":"Оставьте контекст пустым — Truthy автоматически ищет данные",
+    "empty.hint3":"Получите вердикт и правильный ответ на выбранном языке",
+    "ring.label":"Уверенность",
+    "result.elements":"Галлюцинированные элементы","result.explanation":"Объяснение","result.correct":"Правильный ответ",
+    "wc.title":"Веб-контекст","wc.subtitle":"Источники для верификации","wc.fromweb":"из веб-источников",
+    "code.title":"Справка API","code.response":"Ответ","code.copy":"Копировать",
+    "tax.ref":"Справка","tax.title":"Таксономия галлюцинаций","tax.explore":"Нажмите для изучения","tax.view":"Просмотр",
+    "tax.1.name":"Сущность вне контекста","tax.1.desc":"Выдуманная сущность, отсутствующая в исходном контексте",
+    "tax.2.name":"Верификация кортежа","tax.2.desc":"Реальные сущности, неправильно связанные",
+    "tax.3.name":"Намерение вне контекста","tax.3.desc":"Правильные сущности, искажённое отношение",
+    "tax.4.name":"Тройная верификация","tax.4.desc":"Полная тройка субъект-предикат-объект неверна",
+    "result.hallucinated":"Галлюцинация обнаружена","result.clean":"Вывод корректен",
+    "result.cleanSub":"Галлюцинаций нет — фактически согласовано.","result.unclassified":"Неклассифицированная галлюцинация",
+    "err.keyRequired":"Требуется API-ключ для","err.questionRequired":"Вопрос обязателен.",
+    "err.answerRequired":"Ответ модели обязателен.","err.network":"Сетевая ошибка:",
+    \"searching\":\"Поиск в интернете\",\"analysing\":\"Анализируется…\",
+  },
+  Bengali:{
+    "nav.api":"API ডকস","nav.github":"GitHub","nav.live":"লাইভ","lang.select":"ভাষা নির্বাচন করুন",
+    "hero.tag":"AI হ্যালুসিনেশন সনাক্তকরণ ইঞ্জিন",
+    "hero.h1a":"হ্যালুসিনেশন নিয়ে ভয়?","hero.h1b":"আমরা ভয় পাই না।",
+    "hero.p":"4 ট্যাক্সোনমি টাইপে কাঠামোগত হ্যালুসিনেশন বিশ্লেষণ। Groq AI দিয়ে বিনামূল্যে।",
+    "hero.stat1":"ত্রুটির ধরন","hero.stat2":"প্রদানকারী","hero.stat3":"ভাষা","hero.stat4":"বিনামূল্যে ইঞ্জিন",
+    "feat.1":"স্বয়ংক্রিয় ওয়েব সার্চ","feat.2":"হ্যালুসিনেশনে সঠিক উত্তর",
+    "feat.3":"15 ভাষা সমর্থিত","feat.4":"কী কখনো সংরক্ষিত হয় না",
+    "panel.step1":"ধাপ ১","panel.engine":"সনাক্তকরণ ইঞ্জিন বেছে নিন",
+    "panel.step2":"ধাপ ২","panel.inputs":"প্রসঙ্গ ও উত্তর দিন",
+    "panel.quick":"দ্রুত শুরু","panel.test":"পরীক্ষা কেস লোড করুন",
+    "prov.free":"বিনামূল্যে","notice.free":"বিনামূল্যে মোড <strong>Groq · Llama 3.1 8B</strong> ব্যবহার করে। কোনো API কী প্রয়োজন নেই।",
+    "key.label":"API কী","key.placeholder":"sk-…","key.get":"API কী পান →",
+    "field.context":"প্রসঙ্গ অনুচ্ছেদ","field.contextHint":"ঐচ্ছিক — খালি রাখলে স্বয়ংক্রিয় ওয়েব সার্চ",
+    "field.contextPh":"প্রসঙ্গ পেস্ট করুন বা খালি রাখুন…","field.question":"প্রশ্ন","field.questionPh":"LLM-কে জিজ্ঞাসা করা প্রশ্ন…",
+    "field.answer":"মডেলের উত্তর","field.answerPh":"যাচাই করার LLM আউটপুট…",
+    "btn.verify":"এখনই যাচাই করুন",
+    "empty.title":"যাচাইয়ের জন্য প্রস্তুত","empty.subtitle":"একটি প্রদানকারী বেছে নিন, ইনপুট পেস্ট করুন এবং যাচাই করুন।",
+    "empty.hint1":"বিনামূল্যে (Groq), GPT-4o বা Gemini ইঞ্জিন বেছে নিন",
+    "empty.hint2":"প্রসঙ্গ খালি রাখুন — Truthy স্বয়ংক্রিয়ভাবে ওয়েব ডেটা আনে",
+    "empty.hint3":"আপনার ভাষায় রায় ও সঠিক উত্তর পান",
+    "ring.label":"আস্থা",
+    "result.elements":"হ্যালুসিনেটেড উপাদান","result.explanation":"ব্যাখ্যা","result.correct":"সঠিক উত্তর",
+    "wc.title":"ওয়েব প্রসঙ্গ","wc.subtitle":"যাচাইয়ে ব্যবহৃত উৎস","wc.fromweb":"ওয়েব উৎস থেকে",
+    "code.title":"API রেফারেন্স","code.response":"প্রতিক্রিয়া","code.copy":"কপি",
+    "tax.ref":"রেফারেন্স","tax.title":"হ্যালুসিনেশন ট্যাক্সোনমি","tax.explore":"অন্বেষণে ক্লিক করুন","tax.view":"দেখুন",
+    "tax.1.name":"প্রসঙ্গ-বহির্ভূত সত্তা","tax.1.desc":"উৎস প্রসঙ্গে অনুপস্থিত কল্পিত সত্তা",
+    "tax.2.name":"টাপল যাচাইকরণ","tax.2.desc":"বাস্তব সত্তা, ভুলভাবে যুক্ত",
+    "tax.3.name":"প্রসঙ্গ-বহির্ভূত অভিপ্রায়","tax.3.desc":"সঠিক সত্তা, বিকৃত সম্পর্ক",
+    "tax.4.name":"ট্রিপল যাচাইকরণ","tax.4.desc":"সম্পূর্ণ বিষয়-ক্রিয়া-বস্তু ট্রিপল ভুল",
+    "result.hallucinated":"হ্যালুসিনেশন সনাক্ত হয়েছে","result.clean":"আউটপুট সঠিক",
+    "result.cleanSub":"কোনো হ্যালুসিনেশন নেই — তথ্যগতভাবে সামঞ্জস্যপূর্ণ।","result.unclassified":"অশ্রেণীবদ্ধ হ্যালুসিনেশন",
+    "err.keyRequired":"এর জন্য API কী প্রয়োজন","err.questionRequired":"প্রশ্ন আবশ্যক।",
+    "err.answerRequired":"মডেলের উত্তর আবশ্যক।","err.network":"নেটওয়ার্ক ত্রুটি:",
+    "searching":"ওয়েব সার্চ হচ্ছে","analysing":"বিশ্লেষণ হচ্ছে…",
+  },
+  Korean:{
+    "nav.api":"API 문서","nav.github":"GitHub","nav.live":"라이브","lang.select":"언어 선택",
+    "hero.tag":"AI 환각 탐지 엔진",
+    "hero.h1a":"환각이 두렵습니까?","hero.h1b":"우리는 두렵지 않습니다.",
+    "hero.p":"4가지 분류 유형에 걸친 구조적 환각 분석. Groq AI로 무료.",
+    "hero.stat1":"오류 유형","hero.stat2":"제공자","hero.stat3":"언어","hero.stat4":"무료 엔진",
+    "feat.1":"자동 웹 검색","feat.2":"환각 시 정답 제공",
+    "feat.3":"15개 언어 지원","feat.4":"키 저장 안 함",
+    "panel.step1":"단계 1","panel.engine":"탐지 엔진 선택",
+    "panel.step2":"단계 2","panel.inputs":"컨텍스트 및 답변 입력",
+    "panel.quick":"빠른 시작","panel.test":"테스트 케이스 로드",
+    "prov.free":"무료","notice.free":"무료 모드는 <strong>Groq · Llama 3.1 8B</strong>을 사용합니다. API 키 불필요.",
+    "key.label":"API 키","key.placeholder":"sk-…","key.get":"API 키 받기 →",
+    "field.context":"컨텍스트 단락","field.contextHint":"선택 사항 — 비워 두면 자동 웹 검색",
+    "field.contextPh":"컨텍스트를 붙여넣거나 비워 두세요…","field.question":"질문","field.questionPh":"LLM에 한 질문…",
+    "field.answer":"모델 답변","field.answerPh":"확인할 LLM 출력…",
+    "btn.verify":"지금 확인",
+    "empty.title":"확인 준비 완료","empty.subtitle":"제공자를 설정하고 입력을 붙여넣은 후 지금 확인을 클릭하세요.",
+    "empty.hint1":"무료(Groq), GPT-4o 또는 Gemini 엔진 선택","empty.hint2":"컨텍스트를 비워 두세요 — Truthy가 자동으로 웹 데이터를 가져옵니다",
+    "empty.hint3":"선택한 언어로 판정 및 정답 받기",
+    "ring.label":"신뢰도",
+    "result.elements":"환각된 요소","result.explanation":"설명","result.correct":"정답",
+    "wc.title":"웹 컨텍스트","wc.subtitle":"검증에 사용된 출처","wc.fromweb":"웹 소스에서",
+    "code.title":"API 참조","code.response":"응답","code.copy":"복사",
+    "tax.ref":"참조","tax.title":"환각 분류법","tax.explore":"클릭하여 탐색","tax.view":"보기",
+    "tax.1.name":"컨텍스트 외 엔티티","tax.1.desc":"소스 컨텍스트에 없는 날조된 엔티티",
+    "tax.2.name":"튜플 검증","tax.2.desc":"실제 엔티티, 잘못 연결됨",
+    "tax.3.name":"컨텍스트 외 의도","tax.3.desc":"올바른 엔티티, 왜곡된 관계",
+    "tax.4.name":"트리플 검증","tax.4.desc":"주어-서술어-목적어 전체가 잘못됨",
+    "result.hallucinated":"환각 감지됨","result.clean":"출력이 정확합니다",
+    "result.cleanSub":"환각 없음 — 사실적으로 일관됨.","result.unclassified":"미분류 환각",
+    "err.keyRequired":"API 키 필요:","err.questionRequired":"질문은 필수입니다.","err.answerRequired":"모델 답변은 필수입니다.","err.network":"네트워크 오류:",
+    "searching":"웹 검색 중","analysing":"분석 중…",
+  },
+  Italian:{
+    "nav.api":"Docs API","nav.github":"GitHub","nav.live":"Dal vivo","lang.select":"Seleziona lingua",
+    "hero.tag":"Motore di rilevamento allucinazioni AI",
+    "hero.h1a":"Paura delle allucinazioni?","hero.h1b":"Noi no.",
+    "hero.p":"Analisi strutturata delle allucinazioni su 4 tipi di tassonomia. Gratis con Groq AI.",
+    "hero.stat1":"Tipi di errore","hero.stat2":"Fornitori","hero.stat3":"Lingue","hero.stat4":"Motore gratuito",
+    "feat.1":"Ricerca web automatica","feat.2":"Risposta corretta se allucinazione",
+    "feat.3":"15 lingue supportate","feat.4":"Chiavi mai memorizzate",
+    "panel.step1":"Passo 1","panel.engine":"Scegli motore di rilevamento",
+    "panel.step2":"Passo 2","panel.inputs":"Fornisci contesto e risposta",
+    "panel.quick":"Avvio rapido","panel.test":"Carica caso di test",
+    "prov.free":"Gratuito","notice.free":"La modalità gratuita usa <strong>Groq · Llama 3.1 8B</strong>. Nessuna chiave API richiesta.",
+    "key.label":"Chiave API","key.placeholder":"sk-…","key.get":"Ottieni chiave API →",
+    "field.context":"Paragrafo di contesto","field.contextHint":"opzionale — ricerca web auto se vuoto",
+    "field.contextPh":"Incolla il contesto o lascia vuoto…","field.question":"Domanda","field.questionPh":"La domanda posta all'LLM…",
+    "field.answer":"Risposta del modello","field.answerPh":"L'output LLM da verificare…",
+    "btn.verify":"Verifica ora",
+    "empty.title":"Pronto per la verifica","empty.subtitle":"Configura un fornitore, incolla gli input e clicca Verifica ora.",
+    "empty.hint1":"Scegli il motore Gratuito (Groq), GPT-4o o Gemini",
+    "empty.hint2":"Lascia il contesto vuoto — Truthy cerca automaticamente",
+    "empty.hint3":"Ottieni il verdetto e la risposta corretta nella tua lingua",
+    "ring.label":"Confidenza",
+    "result.elements":"Elementi allucinati","result.explanation":"Spiegazione","result.correct":"Risposta corretta",
+    "wc.title":"Contesto web","wc.subtitle":"Fonti usate per la verifica","wc.fromweb":"da fonti web",
+    "code.title":"Riferimento API","code.response":"Risposta","code.copy":"Copia",
+    "tax.ref":"Riferimento","tax.title":"Tassonomia allucinazioni","tax.explore":"Clicca per esplorare","tax.view":"Vedi",
+    "tax.1.name":"Entità fuori contesto","tax.1.desc":"Entità inventata assente dal contesto sorgente",
+    "tax.2.name":"Verifica tupla","tax.2.desc":"Entità reali, collegate erroneamente",
+    "tax.3.name":"Intento fuori contesto","tax.3.desc":"Entità corrette, relazione distorta",
+    "tax.4.name":"Verifica tripla","tax.4.desc":"La tripla soggetto-predicato-oggetto è completamente sbagliata",
+    "result.hallucinated":"Allucinazione rilevata","result.clean":"L'output è corretto",
+    "result.cleanSub":"Nessuna allucinazione — fattualmente coerente.","result.unclassified":"Allucinazione non classificata",
+    "err.keyRequired":"Chiave API richiesta per","err.questionRequired":"La domanda è obbligatoria.","err.answerRequired":"La risposta del modello è obbligatoria.","err.network":"Errore di rete:",
+    "searching":"Ricerca web","analysing":"Analisi in corso…",
+  },
 };
 
-let currentMode="free", currentLang="English", lastResult=null, lastInputs=null, activeTab="curl";
+/* ── App state ────────────────────────────────────────────── */
+let currentMode="free", currentLang="English";
+let lastResult=null, lastInputs=null, activeTab="curl";
 
-// ── THEME ──
+/* ── Translation engine ───────────────────────────────────── */
+function t(key){
+  const dict=I18N[currentLang]||I18N.English;
+  return dict[key]||I18N.English[key]||key;
+}
+function applyTranslations(){
+  // data-i18n text content
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key=el.getAttribute("data-i18n");
+    if(key){
+      // Allow HTML (for <strong> tags in notices)
+      if(key==="notice.free"){el.innerHTML=t(key);}
+      else{el.textContent=t(key);}
+    }
+  });
+  // data-i18n-placeholder
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
+    const key=el.getAttribute("data-i18n-placeholder");
+    if(key)el.placeholder=t(key);
+  });
+  // Update html lang attr for a11y + RTL
+  const rtlLangs=["Arabic"];
+  document.documentElement.lang=currentLang.toLowerCase().slice(0,2);
+  document.documentElement.dir=rtlLangs.includes(currentLang)?"rtl":"ltr";
+  // Update lang button to show current flag
+  const activeLangEl=document.querySelector('.lang-option[data-lang="'+currentLang+'"]');
+  const flagEl=activeLangEl?activeLangEl.querySelector('.lang-flag'):null;
+  const langBtn=document.getElementById("langBtn");
+  if(flagEl&&langBtn){
+    langBtn.innerHTML='<span style="font-size:14px;line-height:1">'+flagEl.textContent+'</span>';
+  }else{
+    langBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  }
+  // Re-render result labels if result is showing
+  if(lastResult&&document.getElementById("result").style.display!=="none"){
+    // Re-render just the translatable parts without full fetch
+    const d=lastResult;
+    const isH=d.is_hallucinated;
+    const vl=document.getElementById("vLabel");if(vl){vl.textContent=isH?t("result.hallucinated"):t("result.clean");}
+    const vs=document.getElementById("vSub");if(vs){vs.textContent=isH?(d.hallucination_names[0]||t("result.unclassified")):t("result.cleanSub");}
+    const tr=document.getElementById("typeRow");
+    if(tr&&tr.style.display!=="none"&&isH&&d.hallucination_types.length>0){
+      const code=d.hallucination_types[0],m=TYPE_META[code]||{};
+      const typeName=t(m.nameKey)||m.name||code;
+      const typeDef=t(m.defKey)||m.def||'';
+      tr.innerHTML='<span class="type-tag">'+escHtml(m.code||code)+'</span><div><div class="type-name">'+escHtml(typeName)+'</div><div class="type-def">'+escHtml(typeDef)+'</div></div>';
+    }
+    // Update wc correct banner label
+    const wcBanner=document.getElementById("wcCorrectBanner");
+    if(wcBanner&&wcBanner.style.display!=="none"){
+      // The data-i18n elements inside will be updated by the loop above
+    }
+  }
+}
+
+/* ── THEME ────────────────────────────────────────────────── */
 function toggleTheme(){
-  const h=document.documentElement,next=h.getAttribute("data-theme")==="dark"?"light":"dark";
+  const h=document.documentElement;
+  const next=h.getAttribute("data-theme")==="dark"?"light":"dark";
   h.setAttribute("data-theme",next);
   document.getElementById("ico-moon").style.display=next==="dark"?"":"none";
   document.getElementById("ico-sun").style.display=next==="light"?"":"none";
   try{localStorage.setItem("truthy-theme",next)}catch(e){}
 }
-(function(){
-  try{
-    const s=localStorage.getItem("truthy-theme");
-    if(s){document.documentElement.setAttribute("data-theme",s);document.getElementById("ico-moon").style.display=s==="dark"?"":"none";document.getElementById("ico-sun").style.display=s==="light"?"":"none";}
-    const l=localStorage.getItem("truthy-lang");
-    if(l){currentLang=l;document.querySelectorAll(".lang-option").forEach(el=>{el.classList.toggle("active",el.dataset.lang===l)});}
-  }catch(e){}
-})();
 
-// ── LANGUAGE ──
+/* ── LANGUAGE ─────────────────────────────────────────────── */
 function toggleLangDropdown(){
-  document.getElementById("langDropdown").classList.toggle("open");
+  const dd=document.getElementById("langDropdown"),btn=document.getElementById("langBtn");
+  const isOpen=dd.classList.toggle("open");
+  btn.classList.toggle("open",isOpen);
 }
-function setLanguage(lang, el){
+function setLanguage(lang,el){
   currentLang=lang;
   document.querySelectorAll(".lang-option").forEach(o=>o.classList.remove("active"));
   el.classList.add("active");
   document.getElementById("langDropdown").classList.remove("open");
+  document.getElementById("langBtn").classList.remove("open");
+  applyTranslations();
   try{localStorage.setItem("truthy-lang",lang)}catch(e){}
 }
 document.addEventListener("click",e=>{
   const dd=document.getElementById("langDropdown"),btn=document.getElementById("langBtn");
-  if(!dd.contains(e.target)&&!btn.contains(e.target))dd.classList.remove("open");
+  if(!dd.contains(e.target)&&!btn.contains(e.target)){
+    dd.classList.remove("open");btn.classList.remove("open");
+  }
 });
 
-// ── MODE ──
+/* ── MODE ─────────────────────────────────────────────────── */
 function setMode(m){
   currentMode=m;
   ["free","openai","gemini"].forEach(id=>document.getElementById("mode-"+id).classList.toggle("active",id===m));
@@ -716,54 +1691,25 @@ function setMode(m){
   else{
     fn.classList.remove("open");ks.classList.add("open");
     const lnk=document.getElementById("key-link"),inp=document.getElementById("apiKey");
-    if(m==="openai"){lnk.href="https://platform.openai.com/api-keys";lnk.textContent="Get OpenAI key →";inp.placeholder="sk-…";}
-    else{lnk.href="https://aistudio.google.com/app/apikey";lnk.textContent="Get Gemini key →";inp.placeholder="AIza…";}
+    if(m==="openai"){lnk.href="https://platform.openai.com/api-keys";lnk.textContent=t("key.get").replace("→","").trim()+" (OpenAI) →";inp.placeholder="sk-…";}
+    else{lnk.href="https://aistudio.google.com/app/apikey";lnk.textContent=t("key.get").replace("→","").trim()+" (Gemini) →";inp.placeholder="AIza…";}
   }
   hideErr();
 }
 function toggleKey(){
   const inp=document.getElementById("apiKey"),eo=document.getElementById("eye-open"),ec=document.getElementById("eye-closed");
-  inp.type=inp.type==="password"?(eo.style.display="none",ec.style.display="","text"):(eo.style.display="",ec.style.display="none","password");
+  if(inp.type==="password"){inp.type="text";eo.style.display="none";ec.style.display="";}
+  else{inp.type="password";eo.style.display="";ec.style.display="none";}
 }
 
-// ── TAXONOMY MODAL ──
-function openTaxModal(idx){
-  const d=TAX_DATA[idx],wrap=document.getElementById("taxModal");
-  wrap.innerHTML=`<div class="modal-overlay" id="modalOverlay" onclick="closeTaxModal(event)">
-    <div class="modal" id="modalBox">
-      <div class="modal-hd">
-        <div style="flex:1"><span class="modal-num-tag">Type ${d.num}</span><div class="modal-htitle">${d.name}</div></div>
-        <button class="modal-close" onclick="closeTaxModal(null,true)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-def">${d.definition}</div>
-        <div><div class="modal-sec-title">When does this occur?</div><div class="modal-def" style="font-size:13px">${d.whenItOccurs}</div></div>
-        <div>
-          <div class="modal-sec-title">Example</div>
-          <div class="modal-example-box">
-            <div class="ex-item"><div class="ex-lbl">Question</div><div class="ex-val">${d.question}</div></div>
-            <div class="ex-item"><div class="ex-lbl">Hallucinated answer</div><div class="ex-val wrong">${d.wrongAnswer}</div></div>
-            <div class="ex-item"><div class="ex-lbl">Correct answer</div><div class="ex-val right">${d.rightAnswer}</div></div>
-            <div class="ex-item"><div class="ex-lbl">Why it's wrong</div><div class="ex-val" style="color:var(--tx3);font-size:11.5px">${d.wrongReason}</div></div>
-          </div>
-        </div>
-        <div><div class="modal-sec-title">Characteristics</div><div class="modal-tags">${d.tags.map(t=>`<span class="modal-tag">${t}</span>`).join('')}</div></div>
-      </div>
-    </div>
-  </div>`;
-  wrap.style.display="block";
-  document.body.style.overflow="hidden";
-}
-function closeTaxModal(e,force){
-  if(!force&&e&&e.target!==document.getElementById("modalOverlay"))return;
-  const ov=document.getElementById("modalOverlay"),mb=document.getElementById("modalBox");
-  if(!ov)return;
-  ov.classList.add("closing");mb.classList.add("closing");
-  setTimeout(()=>{document.getElementById("taxModal").innerHTML="";document.getElementById("taxModal").style.display="none";document.body.style.overflow="";},200);
-}
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeTaxModal(null,true);});
-
-// ── SAMPLES ──
+/* ── SAMPLES ──────────────────────────────────────────────── */
+const SAMPLES=[
+  {paragraph:"Inception is a 2010 science fiction film directed by Christopher Nolan.",question:"Who directed Inception?",answer:"Inception was directed by Steven Spielberg."},
+  {paragraph:"Apple Inc. was founded in 1976 by Steve Jobs, Steve Wozniak, and Ronald Wayne.",question:"Who founded Apple?",answer:"Apple was founded by Bill Gates, Steve Jobs, and Paul Allen."},
+  {paragraph:"Tesla, Inc. was founded in 2003 by engineers Martin Eberhard and Marc Tarpenning.",question:"When was Tesla founded?",answer:"Tesla was founded in 2003 and is currently led by Elon Musk."},
+  {paragraph:"Nineteen Eighty-Four by George Orwell depicts a totalitarian society exploring themes of government control and truth manipulation.",question:"What is the central theme of 1984?",answer:"The novel promotes the idea that strong surveillance creates stability."},
+  {paragraph:"",question:"Who won the 2018 FIFA World Cup?",answer:"The winner of the 2018 FIFA World Cup was Brazil."},
+];
 function loadSample(i){
   const s=SAMPLES[i];
   document.getElementById("paragraph").value=s.paragraph;
@@ -775,21 +1721,21 @@ function hideErr(){document.getElementById("errBar").classList.remove("show")}
 function showErr(msg){document.getElementById("errMsg").textContent=msg;document.getElementById("errBar").classList.add("show")}
 function hideResult(){document.getElementById("result").style.display="none";document.getElementById("emptyState").style.display="block"}
 
-// ── RUN ──
+/* ── RUN ──────────────────────────────────────────────────── */
 async function runDetection(){
   const apiKey=document.getElementById("apiKey").value.trim();
   const paragraph=document.getElementById("paragraph").value.trim();
   const question=document.getElementById("question").value.trim();
   const answer=document.getElementById("answer").value.trim();
   hideErr();
-  if(currentMode!=="free"&&!apiKey)return showErr("An API key is required for "+currentMode+".");
-  if(!question)return showErr("Question is required.");
-  if(!answer)return showErr("Model's answer is required.");
+  if(currentMode!=="free"&&!apiKey)return showErr(t("err.keyRequired")+" "+currentMode+".");
+  if(!question)return showErr(t("err.questionRequired"));
+  if(!answer)return showErr(t("err.answerRequired"));
   const btn=document.getElementById("runBtn"),rc=document.getElementById("runContent");
   btn.disabled=true;
   rc.innerHTML=!paragraph
-    ?'<div class="spinner"></div> Searching web<span class="searching-dots"><span>.</span><span>.</span><span>.</span></span>'
-    :'<div class="spinner"></div> Analysing…';
+    ?`<div class="spinner"></div> ${t("searching")}<span class="searching-dots"><span>.</span><span>.</span><span>.</span></span>`
+    :`<div class="spinner"></div> ${t("analysing")}`;
   try{
     const headers={"Content-Type":"application/json","X-Provider":currentMode,"X-Language":currentLang};
     if(currentMode!=="free")headers["X-API-Key"]=apiKey;
@@ -798,14 +1744,21 @@ async function runDetection(){
     if(!res.ok){showErr(data.detail||"Server error.");return;}
     lastResult=data;lastInputs={paragraph,question,answer};
     renderResult(data);
-  }catch(e){showErr("Network error: "+e.message);}
+  }catch(e){showErr(t("err.network")+" "+e.message);}
   finally{
     btn.disabled=false;
-    rc.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> Verify Now <span class="kbd">⌘↵</span>';
+    rc.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg><span data-i18n="btn.verify">${t("btn.verify")}</span> <span class="kbd">⌘↵</span>`;
   }
 }
 
-// ── RENDER RESULT ──
+/* ── RENDER ───────────────────────────────────────────────── */
+const TYPE_META={
+  "1":{code:"1",nameKey:"tax.1.name",defKey:"tax.1.desc",name:"Out-of-Context Entity",def:"Answer introduces an entity not present in or inferable from context."},
+  "2":{code:"2",nameKey:"tax.2.name",defKey:"tax.2.desc",name:"Tuple Verification",def:"Real entities exist but are incorrectly paired or linked."},
+  "3":{code:"3",nameKey:"tax.3.name",defKey:"tax.3.desc",name:"Out-of-Context Intent",def:"Entities are correct but the relationship between them is distorted."},
+  "4":{code:"4",nameKey:"tax.4.name",defKey:"tax.4.desc",name:"Triple Verification",def:"Full subject–predicate–object triple is wrong at every structural level."},
+};
+
 function renderResult(d){
   document.getElementById("emptyState").style.display="none";
   document.getElementById("result").style.display="flex";
@@ -814,64 +1767,88 @@ function renderResult(d){
   document.getElementById("vStatusBar").className="v-status-bar "+cls;
   const vi=document.getElementById("vIcon");vi.className="v-icon "+cls;
   vi.innerHTML=isH
-    ?'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
-    :'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>';
+    ?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+    :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>';
 
   const vl=document.getElementById("vLabel");vl.className="v-label "+cls;
-  vl.textContent=isH?"Hallucination Detected":"Output is Clean";
-  document.getElementById("vSub").textContent=isH?(d.hallucination_names[0]||"Unclassified hallucination"):"No hallucination found — factually consistent.";
+  vl.textContent=isH?t("result.hallucinated"):t("result.clean");
+  document.getElementById("vSub").textContent=isH?(d.hallucination_names[0]||t("result.unclassified")):t("result.cleanSub");
 
-  const pct=d.confidence,circ=194.8,offset=circ-(pct/100)*circ;
+  // Confidence ring — r=40, circumference = 2π×40 ≈ 251.3
+  const pct=d.confidence,circ=251.3,offset=circ-(pct/100)*circ;
   const arc=document.getElementById("confArc");arc.style.strokeDashoffset=offset;arc.style.stroke=color;
   const cn=document.getElementById("confNum");cn.className="conf-num "+cls;cn.textContent=pct+"%";
 
   const tr=document.getElementById("typeRow");
   if(isH&&d.hallucination_types.length>0){
     const code=d.hallucination_types[0],m=TYPE_META[code]||{};
+    const typeName=t(m.nameKey)||m.name||code;
+    const typeDef=t(m.defKey)||m.def||'';
     tr.style.display="flex";
-    tr.innerHTML='<span class="type-tag">'+(m.code||code)+'</span><div><div class="type-name">'+(m.name||code)+'</div><div class="type-def">'+(m.def||'')+'</div></div>';
+    tr.innerHTML='<span class="type-tag">'+escHtml(m.code||code)+'</span><div><div class="type-name">'+escHtml(typeName)+'</div><div class="type-def">'+escHtml(typeDef)+'</div></div>';
   }else{tr.style.display="none";}
 
   const es=document.getElementById("elemSection"),ec=document.getElementById("elemChips");ec.innerHTML="";
   if(isH&&d.hallucinated_elements&&d.hallucinated_elements.length>0){
     es.style.display="block";
-    d.hallucinated_elements.forEach(el=>{const c=document.createElement("span");c.className="elem-chip";c.innerHTML='<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> '+el;ec.appendChild(c);});
+    d.hallucinated_elements.forEach(el=>{const c=document.createElement("span");c.className="elem-chip";c.innerHTML='<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> '+escHtml(el);ec.appendChild(c);});
   }else{es.style.display="none";}
 
   document.getElementById("expText").textContent=d.explanation||"—";
   const cs=document.getElementById("correctSection");
-  if(d.correct_answer){cs.style.display="block";document.getElementById("correctText").textContent=d.correct_answer;}
+  if(d.correct_answer){
+    cs.style.display="block";
+    const correctEl=document.getElementById("correctText");
+    correctEl.textContent=d.correct_answer;
+    // Show a badge if the correct answer came from web search
+    const existingBadge=cs.querySelector(".correct-box-web");
+    if(existingBadge)existingBadge.remove();
+    if(d.web_search_used&&d.is_hallucinated){
+      const badge=document.createElement("div");
+      badge.className="correct-box-web";
+      badge.innerHTML=`<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> ${t('wc.title')} ✓`;
+      cs.appendChild(badge);
+    }
+  }
   else{cs.style.display="none";}
 
   const pm={free:"Groq · Llama 3.1 8B",openai:"OpenAI · GPT-4o",gemini:"Google · Gemini 1.5"}[d.provider]||d.provider;
   const langLabel=d.language&&d.language!=="English"?` · ${d.language}`:"";
-  document.getElementById("provChip").innerHTML='<span class="prov-foot-dot"></span>'+pm+langLabel;
+  document.getElementById("provChip").innerHTML='<span class="prov-foot-dot"></span>'+escHtml(pm+langLabel);
   document.getElementById("vfTime").textContent=new Date().toLocaleTimeString();
 
-  // Render structured web context
   renderWebContext(d);
-
   buildCode("curl");document.getElementById("codeCard").style.display="block";
 }
 
 function renderWebContext(d){
   const panel=document.getElementById("webCtxPanel");
   if(!d.web_search_used){panel.style.display="none";return;}
-
   panel.style.display="block";
   const wc=d.web_context_structured||{};
 
+  // Title
   const titleEl=document.getElementById("wcTitle");
   if(wc.title){titleEl.textContent=wc.title;titleEl.style.display="block";}
   else{titleEl.style.display="none";}
 
+  // Correct answer from web — show prominently when hallucinated
+  const bannerEl=document.getElementById("wcCorrectBanner");
+  const bannerTxt=document.getElementById("wcCorrectText");
+  if(d.is_hallucinated&&d.correct_answer){
+    bannerTxt.textContent=d.correct_answer;
+    bannerEl.style.display="block";
+  }else{bannerEl.style.display="none";}
+
+  // Summary — clean readable paragraphs
   const summEl=document.getElementById("wcSummary");
   if(wc.summary){
-    // Trim to clean readable length
-    summEl.textContent=wc.summary.length>500?wc.summary.slice(0,500)+"…":wc.summary;
+    const text=wc.summary.trim();
+    summEl.innerHTML=text.split(/\n+/).map(p=>p.trim()).filter(Boolean).map(p=>`<p>${escHtml(p)}</p>`).join('');
     summEl.style.display="block";
   }else{summEl.style.display="none";}
 
+  // Facts — clean labeled grid
   const factsEl=document.getElementById("wcFacts");
   if(wc.facts&&wc.facts.length>0){
     factsEl.innerHTML=wc.facts.slice(0,8).map(f=>`
@@ -882,23 +1859,41 @@ function renderWebContext(d){
     factsEl.style.display="grid";
   }else{factsEl.style.display="none";}
 
+  // Sources
   const srcsEl=document.getElementById("wcSources");
   const sources=d.sources||[];
   if(sources.length>0){
-    srcsEl.innerHTML=sources.slice(0,4).map(s=>`
-      <a class="wc-src" href="${escHtml(s.url)}" target="_blank" rel="noopener">
-        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        ${escHtml(s.title.slice(0,40))}
+    srcsEl.innerHTML=sources.slice(0,5).map(s=>`
+      <a class="wc-src" href="${escHtml(s.url)}" target="_blank" rel="noopener" title="${escHtml(s.title)}">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span>${escHtml((s.title||s.url).slice(0,46))}${(s.title||s.url).length>46?'…':''}</span>
       </a>`).join('');
     srcsEl.style.display="flex";
   }else{srcsEl.style.display="none";}
 }
 
-function escHtml(s){
-  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+/* ── TAXONOMY MODAL ───────────────────────────────────────── */
+const TAX_DATA=[
+  {num:"1",name:"Out-of-Context Entity Hallucination",definition:"The model introduces a person, place, object, or concept not present in the context. The model fabricates an entity with no grounding in the source material.",whenItOccurs:"Occurs when the model draws on training knowledge rather than following context — inserting familiar but incorrect names or facts.",question:"Who directed Inception?",wrongAnswer:"Steven Spielberg directed Inception.",rightAnswer:"Christopher Nolan directed Inception.",wrongReason:"Spielberg is a real director but has no connection to Inception.",tags:["Fabricated entity","Context violation","Grounding error"]},
+  {num:"2",name:"Tuple Verification Hallucination",definition:"Both entities in the answer are individually real, but the model incorrectly pairs or links them. The relationship between subject and object is hallucinated.",whenItOccurs:"Common when a model knows about multiple entities in the same domain and confuses their relationships.",question:"Who founded Apple?",wrongAnswer:"Apple was founded by Bill Gates, Steve Jobs, and Paul Allen.",rightAnswer:"Apple was founded by Steve Jobs, Steve Wozniak, and Ronald Wayne.",wrongReason:"Bill Gates and Paul Allen founded Microsoft, not Apple.",tags:["Wrong pairing","Entity confusion","Relationship error"]},
+  {num:"3",name:"Out-of-Context Intent Hallucination",definition:"The entities are correct, but the action, intent, or meaning attributed to them is wrong — often directly inverting the actual purpose.",whenItOccurs:"Occurs when the model identifies the right entities but misrepresents what they mean or concluded.",question:"What is the central theme of 1984?",wrongAnswer:"The novel promotes surveillance as a force for stability.",rightAnswer:"The novel critiques totalitarian surveillance as oppression.",wrongReason:"Orwell wrote 1984 as a warning against surveillance — the intent is inverted.",tags:["Intent inversion","Meaning distortion","Semantic error"]},
+  {num:"4",name:"Triple Verification Hallucination",definition:"The complete subject–predicate–object triple is wrong. Subject, verb, and object are all incorrect — a comprehensive factual failure.",whenItOccurs:"The most severe type. Occurs when the model has very little grounding and generates entirely fabricated triples.",question:"Who won the 2018 FIFA World Cup?",wrongAnswer:"Brazil won the 2018 World Cup held in Germany.",rightAnswer:"France won the 2018 FIFA World Cup, defeating Croatia 4-2 in Russia.",wrongReason:"Wrong winner (Brazil), wrong host country (Germany) — a full structural triple failure.",tags:["Full triple error","Multi-level failure","Severe hallucination"]},
+];
+function openTaxModal(idx){
+  const d=TAX_DATA[idx],wrap=document.getElementById("taxModal");
+  wrap.innerHTML=`<div class="modal-overlay" id="modalOverlay" onclick="closeTaxModal(event)"><div class="modal" id="modalBox"><div class="modal-hd"><div style="flex:1"><span class="modal-num-tag">Type ${escHtml(d.num)}</span><div class="modal-htitle">${escHtml(d.name)}</div></div><button class="modal-close" onclick="closeTaxModal(null,true)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div class="modal-body"><div class="modal-def">${escHtml(d.definition)}</div><div><div class="modal-sec-title">When does this occur?</div><div class="modal-def" style="font-size:13px">${escHtml(d.whenItOccurs)}</div></div><div><div class="modal-sec-title">Example</div><div class="modal-example-box"><div class="ex-item"><div class="ex-lbl">Question</div><div class="ex-val">${escHtml(d.question)}</div></div><div class="ex-item"><div class="ex-lbl">Hallucinated answer</div><div class="ex-val wrong">${escHtml(d.wrongAnswer)}</div></div><div class="ex-item"><div class="ex-lbl">Correct answer</div><div class="ex-val right">${escHtml(d.rightAnswer)}</div></div><div class="ex-item"><div class="ex-lbl">Why it's wrong</div><div class="ex-val" style="color:var(--tx3);font-size:11.5px">${escHtml(d.wrongReason)}</div></div></div></div><div><div class="modal-sec-title">Characteristics</div><div class="modal-tags">${d.tags.map(tag=>`<span class="modal-tag">${escHtml(tag)}</span>`).join('')}</div></div></div></div></div>`;
+  wrap.style.display="block";document.body.style.overflow="hidden";
 }
+function closeTaxModal(e,force){
+  if(!force&&e&&e.target!==document.getElementById("modalOverlay"))return;
+  const ov=document.getElementById("modalOverlay"),mb=document.getElementById("modalBox");
+  if(!ov)return;
+  ov.classList.add("closing");mb.classList.add("closing");
+  setTimeout(()=>{document.getElementById("taxModal").innerHTML="";document.getElementById("taxModal").style.display="none";document.body.style.overflow="";},200);
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeTaxModal(null,true);});
 
-// ── CODE CARD ──
+/* ── CODE CARD ────────────────────────────────────────────── */
 function switchTab(t){
   activeTab=t;
   document.querySelectorAll(".code-tab").forEach((el,i)=>el.classList.toggle("active",["curl","python","json"][i]===t));
@@ -908,22 +1903,44 @@ function buildCode(tab){
   if(!lastResult||!lastInputs)return;
   const pre=document.getElementById("codePre"),o=window.location.origin;
   const d=lastResult,inp=lastInputs;
-  const esc=s=>s.replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g,"\\n");
+  const esc=s=>String(s).replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g,"\\n");
   const isFree=d.provider==="free";
   if(tab==="curl"){
-    pre.innerHTML='<span class="t-curl">curl</span> <span class="t-flag">-X POST</span> <span class="t-url">'+o+'/detect</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"Content-Type: application/json"</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-Provider: '+d.provider+'"</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-Language: '+escHtml(d.language||'English')+'"</span>'+(isFree?'':' \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-API-Key: YOUR_KEY_HERE"</span>')+' \\\n  <span class="t-flag">-d</span> <span class="t-str">\'{"question":"'+esc(inp.question)+'","answer":"'+esc(inp.answer.slice(0,50))+'..."}\'</span>';
+    pre.innerHTML='<span class="t-curl">curl</span> <span class="t-flag">-X POST</span> <span class="t-url">'+o+'/detect</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"Content-Type: application/json"</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-Provider: '+escHtml(d.provider)+'"</span> \\\n  <span class="t-flag">-H</span> <span class="t-str">"X-Language: '+escHtml(d.language||'English')+'"</span>'+(isFree?'':'\\\n  <span class="t-flag">-H</span> <span class="t-str">"X-API-Key: YOUR_KEY"</span>')+' \\\n  <span class="t-flag">-d</span> <span class="t-str">\'{"question":"'+esc(inp.question.slice(0,60))+'...","answer":"..."}\'</span>';
   }else if(tab==="python"){
-    pre.innerHTML='<span class="t-flag">import</span> requests\n\nresponse = requests.<span class="t-curl">post</span>(\n    <span class="t-str">"'+o+'/detect"</span>,\n    headers={\n        <span class="t-str">"X-Provider"</span>: <span class="t-str">"'+d.provider+'"</span>,\n        <span class="t-str">"X-Language"</span>: <span class="t-str">"'+escHtml(d.language||'English')+'"</span>,'+(isFree?'':'\n        <span class="t-str">"X-API-Key"</span>: <span class="t-str">"YOUR_KEY"</span>,')+'\n    },\n    json={"question": <span class="t-str">"'+esc(inp.question)+'"</span>, "answer": <span class="t-str">"..."</span>}\n)\n<span class="t-curl">print</span>(response.json())';
+    pre.innerHTML='<span class="t-flag">import</span> requests\n\nresponse = requests.<span class="t-curl">post</span>(\n    <span class="t-str">"'+o+'/detect"</span>,\n    headers={\n        <span class="t-str">"X-Provider"</span>: <span class="t-str">"'+escHtml(d.provider)+'"</span>,\n        <span class="t-str">"X-Language"</span>: <span class="t-str">"'+escHtml(d.language||'English')+'"</span>,'+(isFree?'':'\n        <span class="t-str">"X-API-Key"</span>: <span class="t-str">"YOUR_KEY"</span>,')+'\n    },\n    json={"question": <span class="t-str">"'+esc(inp.question.slice(0,60))+'"</span>, "answer": <span class="t-str">"..."</span>}\n)\n<span class="t-curl">print</span>(response.json())';
   }else{
     const r=lastResult;
-    pre.innerHTML='{\n  <span class="t-key">"is_hallucinated"</span>: <span class="'+(r.is_hallucinated?'t-bool-f':'t-bool-t')+'">'+r.is_hallucinated+'</span>,\n  <span class="t-key">"confidence"</span>:      <span class="t-num">'+r.confidence+'</span>,\n  <span class="t-key">"hallucination_types"</span>: <span class="t-str">'+JSON.stringify(r.hallucination_types)+'</span>,\n  <span class="t-key">"language"</span>:       <span class="t-str">"'+(r.language||'English')+'"</span>,\n  <span class="t-key">"explanation"</span>:    <span class="t-str">"'+esc((r.explanation||'').slice(0,80))+((r.explanation||'').length>80?'..':'')+'\"</span>,\n  <span class="t-key">"correct_answer"</span>: <span class="t-str">"'+esc((r.correct_answer||'').slice(0,80))+'"</span>,\n  <span class="t-key">"provider"</span>:       <span class="t-str">"'+r.provider+'"</span>\n}';
+    pre.innerHTML='{\n  <span class="t-key">"is_hallucinated"</span>: <span class="'+(r.is_hallucinated?'t-bool-f':'t-bool-t')+'">'+r.is_hallucinated+'</span>,\n  <span class="t-key">"confidence"</span>:      <span class="t-num">'+r.confidence+'</span>,\n  <span class="t-key">"hallucination_types"</span>: <span class="t-str">'+escHtml(JSON.stringify(r.hallucination_types))+'</span>,\n  <span class="t-key">"language"</span>:       <span class="t-str">"'+escHtml(r.language||'English')+'"</span>,\n  <span class="t-key">"explanation"</span>:    <span class="t-str">"'+esc((r.explanation||'').slice(0,80))+(r.explanation&&r.explanation.length>80?'..':'')+'\"</span>,\n  <span class="t-key">"correct_answer"</span>: <span class="t-str">"'+esc((r.correct_answer||'').slice(0,80))+'"</span>,\n  <span class="t-key">"provider"</span>:       <span class="t-str">"'+escHtml(r.provider)+'"</span>\n}';
   }
 }
 function copyCode(){
   navigator.clipboard.writeText(document.getElementById("codePre").innerText).then(()=>{
-    const b=document.querySelector(".copy-btn"),p=b.textContent;b.textContent="Copied!";setTimeout(()=>b.textContent=p,2000);
+    const b=document.querySelector(".copy-btn"),p=b.textContent;b.textContent="✓ "+t("code.copy")+"!";setTimeout(()=>b.textContent=t("code.copy"),2000);
   });
 }
+
+/* ── UTILS ────────────────────────────────────────────────── */
+function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+/* ── INIT ─────────────────────────────────────────────────── */
+(function init(){
+  try{
+    const th=localStorage.getItem("truthy-theme");
+    if(th){
+      document.documentElement.setAttribute("data-theme",th);
+      document.getElementById("ico-moon").style.display=th==="dark"?"":"none";
+      document.getElementById("ico-sun").style.display=th==="light"?"":"none";
+    }
+    const lg=localStorage.getItem("truthy-lang");
+    if(lg&&I18N[lg]){
+      currentLang=lg;
+      document.querySelectorAll(".lang-option").forEach(el=>el.classList.toggle("active",el.dataset.lang===lg));
+      applyTranslations();
+    }
+  }catch(e){}
+})();
+
 document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key==="Enter")runDetection();});
 </script>
 </body>
