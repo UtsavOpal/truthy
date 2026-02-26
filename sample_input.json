@@ -1,0 +1,12 @@
+[
+  {
+    "paragraph": "The Eiffel Tower is located in Paris, France. It was constructed between 1887 and 1889 as the entrance arch for the 1889 World's Fair.",
+    "question": "Where is the Eiffel Tower located?",
+    "answer": "The Eiffel Tower is located in Berlin, Germany."
+  },
+  {
+    "paragraph": "William Shakespeare was an English playwright and poet, widely regarded as the greatest writer in the English language. He wrote 37 plays and 154 sonnets.",
+    "question": "What nationality was Shakespeare?",
+    "answer": "Shakespeare was an English playwright who wrote plays and sonnets."
+  }
+]

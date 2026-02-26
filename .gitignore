@@ -1,0 +1,15 @@
+# Secret keys — never upload your real .env
+.env
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment folder
+venv/
+env/
+
+# Windows junk files
+Thumbs.db
+desktop.ini
